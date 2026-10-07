@@ -1,0 +1,45 @@
+SKINBOT - skin, rampa e cielo abbinati in UEFN
+===============================================
+
+INSTALLARE SU UN PC NUOVO (copia della mappa con la rampa)
+  1. Fai doppio click su "Installa Skinbot.bat" (l'unico file da ricevere).
+     Scarica Skinbot in %LOCALAPPDATA%\Skinbot, installa Python e Blender se mancano,
+     crea il collegamento "Skinbot" sul desktop e apre il programma.
+  2. Installa FortnitePorting e avvialo una volta.
+  3. Apri UEFN sul progetto, con il server MCP attivo sulla porta 8000.
+  4. In Skinbot premi "Prepara questa mappa" (una volta sola per progetto).
+
+AGGIORNAMENTI
+  Automatici. A ogni avvio Skinbot controlla se c'e' una versione nuova: se c'e', la installa e
+  si riapre da solo. Se la trova mentre e' aperto, la installa quando lo chiudi (o subito con
+  "Riavvia ora"). Il numero di versione e' in alto, accanto al nome.
+
+COME SI USA
+  1. UEFN aperto sulla mappa.
+  2. In FortnitePorting seleziona la skin ed esporta su "Assets Folder".
+  3. In Skinbot la skin nuova e' gia' selezionata: controlla la foto e i colori, premi
+     APPLICA A UEFN. Con "Automatico: ON" applica da sola ogni skin appena la esporti.
+
+COSA FA
+  - converte la skin (Blender, senza aprire finestre), la mette in posa, le disegna gli occhi
+    se l'export non li ha, le prende la testa dallo stile base se la variante e' senza
+  - la importa in UEFN con colore, rilievi e luci
+  - misura i colori sulla superficie reale della skin
+  - ricolora muri, pavimenti e rampe e tinge il cielo
+  - mette la skin sulle tre statue in fondo alla rampa e salva
+
+SE QUALCOSA NON VA
+  - "UEFN chiuso" in alto a destra: apri UEFN sul progetto.
+  - Skin "(senza corpo)": FortnitePorting ha esportato una variante incompleta, scegli l'altra.
+  - Ogni esecuzione e' registrata in skinbot.log, con i dettagli degli errori.
+
+LIMITI
+  - L'export in FortnitePorting resta un click tuo.
+  - Posa unica (in piedi, braccia lungo i fianchi), capelli a ciocche senza trasparenza,
+    occhi delle skin realistiche approssimati.
+
+PER CHI SVILUPPA (solo sul PC con il file .dev)
+  python pubblica.py --init https://github.com/UTENTE/skinbot.git   una volta: collega il canale
+  python pubblica.py --note "cosa e' cambiato"                       pubblica una nuova versione
+  python skinbot.py --list / NomeSkin / --watch / --layout v2 / --dry-run   uso da riga di comando
+  python gui.py                                                      wallbot: muri esagonali in PNG

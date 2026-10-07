@@ -1,0 +1,67 @@
+{
+ "version": "1.0.0",
+ "date": "2026-10-08",
+ "notes": "Prima versione con aggiornamento automatico",
+ "files": {
+  "applica_skin.bat": {
+   "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
+   "size": 907
+  },
+  "installa.bat": {
+   "sha256": "2120cd83b509281b0292ebad659b0d9b41095aed941e43ad2c07f2a38864c814",
+   "size": 2908
+  },
+  "LEGGIMI.txt": {
+   "sha256": "ccf968d5a1da1d60811464dd060efa97123e3123f7a638313c4c03ce4d4ba696",
+   "size": 2453
+  },
+  "update.json": {
+   "sha256": "96e659f236abcb90912ad7e53971373ba111bd3084adf56d1ecd87e6989b7340",
+   "size": 147
+  },
+  "version.json": {
+   "sha256": "28f7cf61984c9f74b106b8b0b31f080ac10e0fc3462a0f57201c612e851f35b2",
+   "size": 112
+  },
+  "updater.py": {
+   "sha256": "fe2da8ab96650412a4b2182a3d8d71f7ddba81a4976e0c00533b58c1bbe62db2",
+   "size": 10220
+  },
+  "skinbot.py": {
+   "sha256": "b02d891966ed1f1de7ffa8c42193dd036910808d6f6f18fe0a5ea92b41004b2a",
+   "size": 28551
+  },
+  "skinbot_gui.py": {
+   "sha256": "66d979110f9585e8ba5e0f9692767a26dfcec07272e6771ef7a56aecd7e8807c",
+   "size": 22976
+  },
+  "skinbot_setup.py": {
+   "sha256": "1bd9f6ee59f4dcf4375e40dfb5a37673cff3d5e9bd15e7fd75b6030826c83af0",
+   "size": 11073
+  },
+  "skin_convert.py": {
+   "sha256": "24f2ac9e6c1a324925d37f6ea4b2627e4a25a0dcf8094c19b1479b43c48daee5",
+   "size": 12435
+  },
+  "wallbot.py": {
+   "sha256": "55ebaad5cef1d65809ca9590200e93772c3b289a4c69c1844b1b83a0b39de680",
+   "size": 15798
+  },
+  "gui.py": {
+   "sha256": "d4c7bbe1dda7629e15d0ee4e99c453217300b65c46d913fb1e518fb071ce2e3e",
+   "size": 14003
+  },
+  "layouts/original.json": {
+   "sha256": "1f931927c90a030544b2ea368a52942c73fc52bd214387309a990fca185f44b2",
+   "size": 456
+  },
+  "layouts/v2.json": {
+   "sha256": "89144da6f979f69b037e459caf6244a52508ace95459ab7275fde87f258cc524",
+   "size": 456
+  },
+  "layouts/v3.json": {
+   "sha256": "95c6941a8d8a6f3b041eec01e2e6f2fcf3181a04bdc471b7f6f650bed430e00d",
+   "size": 456
+  }
+ }
+}
