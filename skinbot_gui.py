@@ -1,5 +1,6 @@
 """Interfaccia di skinbot. Avvio: doppio click su applica_skin.bat (o `python skinbot_gui.py`)."""
 import argparse
+import json
 import queue
 import random
 import sys
@@ -165,6 +166,10 @@ class App:
         self.statues_lbl = tk.Label(act, text="", font=FONT_B, padx=14, pady=11, cursor="hand2", bg=PANEL)
         self.statues_lbl.pack(side="left")
         self.statues_lbl.bind("<Button-1>", lambda e: self.toggle_statues())
+        self.falls_on = self.load_settings().get("cascate")      # None finche' non lo si sceglie: non tocca nulla
+        self.falls_lbl = tk.Label(act, text="", font=FONT_B, padx=14, pady=11, cursor="hand2", bg=PANEL)
+        self.falls_lbl.pack(side="left", padx=10)
+        self.falls_lbl.bind("<Button-1>", lambda e: self.toggle_falls())
 
         self.text = tk.Text(right, height=7, state="disabled", wrap="word", bg=PANEL, fg=TEXT, bd=0,
                             font=("Consolas", 9), padx=10, pady=8, insertbackground=TEXT)
@@ -385,6 +390,25 @@ class App:
                              fg=accent if self.auto_on else MUTED)
         self.statues_lbl.config(text=("●  Statue: ON" if self.statues_on else "○  Statue: OFF"),
                                 fg=accent if self.statues_on else MUTED)
+        self.falls_lbl.config(text=("●  Cascate XP: ON" if self.falls_on else "○  Cascate XP: OFF"),
+                              fg=accent if self.falls_on else MUTED)
+
+    def load_settings(self):
+        try:
+            return json.loads((sb.HERE / "settings.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+
+    def toggle_falls(self):
+        self.falls_on = not self.falls_on
+        try:
+            (sb.HERE / "settings.json").write_text(json.dumps({**self.load_settings(), "cascate": self.falls_on}),
+                                                   encoding="utf-8")
+        except OSError:
+            pass
+        self._toggles()
+        sb.log("Cascate XP: le metto al prossimo APPLICA A UEFN." if self.falls_on
+               else "Cascate XP: le tolgo al prossimo APPLICA A UEFN.")
 
     def toggle_statues(self):
         self.statues_on = not self.statues_on
@@ -410,7 +434,7 @@ class App:
         self.busy = True
         self.apply_btn.config(text="STO LAVORANDO...", bg=ROW_SEL, fg=MUTED)
         args = argparse.Namespace(colors=self.manual, layout=self.layout,
-                                  no_statues=not self.statues_on, dry_run=False)
+                                  no_statues=not self.statues_on, cascate=self.falls_on, dry_run=False)
 
         def work():
             try:

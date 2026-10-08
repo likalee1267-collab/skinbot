@@ -711,6 +711,26 @@ def link_map(ue):
         log("  ATTENZIONE: collegamento dei muri non riuscito:", str(exc)[:200])
 
 
+def scenery(ue, cascate):
+    """Cascate XP dietro le statue: True le mette, False le toglie, None non le tocca."""
+    if cascate is None:
+        return
+    import cascate as cs
+    cs.sb.configure(ROOT.strip("/").split("/")[0])
+    try:
+        if cascate:
+            falls, badges, note = cs.place(ue)
+            log(f"  Cascate XP: {falls} cascate e {badges} stemmi nuovi" if falls or badges else "  Cascate XP: gia' al loro posto")
+            if note:
+                log("  Attenzione:", note)
+        else:
+            gone = cs.remove(ue)
+            if gone:
+                log(f"  Cascate XP tolte ({gone} oggetti)")
+    except RuntimeError as exc:
+        log("  ATTENZIONE: cascate non riuscite:", str(exc)[:200])
+
+
 def run_skin(code, args):
     skins = exported_skins()
     if not skins:
@@ -763,6 +783,7 @@ def run_skin(code, args):
     if not args.no_statues:
         count, what = place_statues(ue, mesh, info.get("size_m"))
         log(f"  Statue {what}: {count}")
+    scenery(ue, getattr(args, "cascate", None))
     log(f"Fatto e salvato in {time.time() - started:.0f} secondi.")
 
 
@@ -831,6 +852,8 @@ def main():
     ap.add_argument("-c", "--colors", type=wb.parse_hex, nargs=3, metavar="HEX", help="base A B, invece della palette automatica")
     ap.add_argument("--layout", help="disegno degli esagoni: original, v2, v3, random o un preset di wallbot")
     ap.add_argument("--no-statues", action="store_true", help="non toccare le tre statue")
+    ap.add_argument("--cascate", action="store_true", default=None, help="metti le tre cascate con gli XP dietro le statue")
+    ap.add_argument("--no-cascate", dest="cascate", action="store_false", help="togli le cascate messe dal bot")
     ap.add_argument("--dry-run", action="store_true", help="mostra il piano senza toccare UEFN")
     ap.add_argument("--list", action="store_true", help="elenca le skin esportate ed esce")
     ap.add_argument("--watch", action="store_true", help="resta in attesa e applica ogni nuovo export")

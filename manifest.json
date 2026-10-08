@@ -1,7 +1,7 @@
 {
- "version": "1.0.8",
+ "version": "1.0.9",
  "date": "2026-10-08",
- "notes": "Skin bianche: il bot trova le texture anche quando hanno nomi insoliti (es. Spider-Man) e rifa' la foto da solo",
+ "notes": "Novita': Cascate XP. Un interruttore mette tre cascate con gli stemmi XP dietro le statue",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,20 +20,20 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "d8df4fea65e8f273de56df9db398b98e8b5fa0a3a6f5058fab8a02c2014e30c3",
-   "size": 180
+   "sha256": "c40de10135c8f8863ac02038c602f7166ef718d0e7a0be2f1e548ff45d7506c2",
+   "size": 158
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "69f394e8227767369bec844a968924844ea91715e081137f1b8280a4ba1bc92b",
-   "size": 38233
+   "sha256": "7fb2c36c2bd595efa6644e772812dc52eb09b888c014004b6695a08660332bfc",
+   "size": 39275
   },
   "skinbot_gui.py": {
-   "sha256": "d4ca8fbc21cc8cf5e477228e5c374f4d882a93bb75f824528c621a4e284ad1d7",
-   "size": 27100
+   "sha256": "42019b6c8a25e36f7fdeea5ebf0ddfb1839eade9d79e2e7645e63a7be8d74ae6",
+   "size": 27731
   },
   "skinbot_setup.py": {
    "sha256": "69e5df1019222421ab2384d868c1381871a9b08b169accaf5ca95f9510336b1b",
@@ -50,6 +50,10 @@
   "gui.py": {
    "sha256": "d4c7bbe1dda7629e15d0ee4e99c453217300b65c46d913fb1e518fb071ce2e3e",
    "size": 14003
+  },
+  "cascate.py": {
+   "sha256": "980444eb5df8b1bd4ef516d9e3e981b0da4e8226eb0d2592b070cebd6584340e",
+   "size": 5204
   },
   "layouts/original.json": {
    "sha256": "1f931927c90a030544b2ea368a52942c73fc52bd214387309a990fca185f44b2",
