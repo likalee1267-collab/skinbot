@@ -18,6 +18,7 @@ import wallbot as wb
 
 BG, PANEL, ROW, ROW_SEL = "#14151c", "#1d1f2a", "#1d1f2a", "#2c3040"
 TEXT, MUTED, OK, BAD = "#eef0f6", "#8b90a3", "#3ddc84", "#ff5c6c"
+WARN = "#ffb347"
 FONT, FONT_B, FONT_H = ("Segoe UI", 10), ("Segoe UI Semibold", 10), ("Segoe UI Semibold", 15)
 LAYOUTS = [("Come adesso", None), ("Classico", "original"), ("Macchie", "v2"), ("Angoli", "v3"), ("Casuale", "random")]
 NAMES = ("Base", "Colore A", "Colore B")
@@ -41,7 +42,7 @@ class App:
         self.root = root
         root.title("Skinbot")
         root.configure(bg=BG)
-        root.minsize(940, 880)
+        root.minsize(940, 960)
         self.lines = queue.Queue()
         self.busy = False
         self.manual = None                         # palette scelta a mano, altrimenti automatica
@@ -116,7 +117,8 @@ class App:
         clean.config(fg="#ff8a80")
         clean.pack(side="bottom", fill="x", padx=10, pady=(0, 10))
         self._button(left, "Prepara questa mappa", self.setup_map, small=True).pack(side="bottom", fill="x", padx=10, pady=(0, 6))
-        self._button(left, "Aggiorna elenco", self.refresh, small=True).pack(side="bottom", fill="x", padx=10, pady=6)
+        self._button(left, "Aggiorna elenco", self.refresh, small=True).pack(side="bottom", fill="x", padx=10, pady=(0, 6))
+        self._button(left, "Storico delle skin fatte", self.show_history, small=True).pack(side="bottom", fill="x", padx=10, pady=6)
         # elenco scorrevole con la rotella
         self.list_canvas = tk.Canvas(left, bg=PANEL, highlightthickness=0)
         self.list_canvas.pack(fill="both", expand=True, padx=6)
@@ -210,6 +212,7 @@ class App:
         # i pezzi sciolti (braccia, teste, accessori senza corpo) non sono skin: fuori dall'elenco
         self.skins = {c: f for c, f in sb.exported_skins().items() if sb.has_body(f)}
         newest = sb.latest_code(self.skins)
+        history = sb.load_history()
         for child in self.list_box.winfo_children():
             child.destroy()
         self.rows = {}
@@ -227,7 +230,10 @@ class App:
                             fg=TEXT if complete else MUTED, anchor="w")
             name.pack(side="left", fill="x", expand=True)
             self.name_lbls[code] = name
-            if code == newest:
+            done = len(history.get(code, {}).get("usi", []))
+            if done:
+                tk.Label(row, text=f"fatta x{done}", font=("Segoe UI", 8), bg=ROW, fg=WARN).pack(side="right", padx=8)
+            elif code == newest:
                 tk.Label(row, text="nuova", font=("Segoe UI", 8), bg=ROW, fg=OK).pack(side="right", padx=8)
             elif not complete:
                 tk.Label(row, text="senza corpo", font=("Segoe UI", 8), bg=ROW, fg=MUTED).pack(side="right", padx=8)
@@ -290,7 +296,17 @@ class App:
         self.title.config(text=sb.display_name(code, self.names) if code else "Nessuna skin esportata")
         self.prepare(code)
         self.auto_colors()                         # skin nuova: si riparte dallo stile automatico
+        self.pick_style(self.fresh_style())        # ...o dal primo stile non ancora usato per questa skin
         self.show_dye()
+
+    def fresh_style(self):
+        """L'indice del primo stile mai usato per questa skin; se li ha gia' usati tutti, quello usato da piu' tempo."""
+        used = sb.used_styles(self.code) if self.code else {}
+        names = [name for name, _ in self.styles]
+        for i, name in enumerate(names):
+            if name not in used:
+                return i
+        return min(range(len(names)), key=lambda i: used[names[i]][-1])
 
     def show_dye(self):
         if self.code and sb.can_dye(self.code):
@@ -331,7 +347,10 @@ class App:
             return "Esporta una skin da FortnitePorting su Assets Folder."
         note = "   Preparo la foto della skin..." if self.code in self.preparing else ""
         style = "colori scelti a mano" if self.style_idx < 0 else f"stile {self.styles[self.style_idx][0]}"
-        return f"{self.code}   -   {style}{note}"
+        used = sb.used_styles(self.code)
+        done = sum(len(v) for v in used.values())
+        past = f"   -   gia' fatta {done} volte: {', '.join(used)}" if done else "   -   mai fatta"
+        return f"{self.code}   -   {style}{past}{note}"
 
     def pick_style(self, i):
         self.style_idx = i
@@ -345,6 +364,7 @@ class App:
         for child in self.styles_box.winfo_children():
             child.destroy()
         self.style_cards = []
+        used = sb.used_styles(self.code) if self.code else {}
         for i, (name, cols) in enumerate(self.styles):
             card = tk.Frame(self.styles_box, bg=PANEL, cursor="hand2", highlightthickness=2, highlightbackground=BG)
             card.grid(row=i // 4, column=i % 4, padx=(0, 6), pady=(0, 6))
@@ -354,8 +374,12 @@ class App:
             sw.create_rectangle(70, 0, 94, 30, fill=hexcol(cols[1]), outline="")
             sw.create_rectangle(94, 0, 118, 30, fill=hexcol(cols[2]), outline="")
             lbl = tk.Label(card, text=name, font=FONT, bg=PANEL, fg=TEXT)
-            lbl.pack(pady=(0, 4))
-            for widget in (card, sw, lbl):
+            lbl.pack()
+            dates = used.get(name)
+            tag = tk.Label(card, text=f"usato {dates[-1][8:10]}/{dates[-1][5:7]}" + (f" x{len(dates)}" if len(dates) > 1 else "")
+                           if dates else "libero", font=("Segoe UI", 8), bg=PANEL, fg=WARN if dates else OK)
+            tag.pack(pady=(0, 4))
+            for widget in (card, sw, lbl, tag):
                 widget.bind("<Button-1>", lambda e, i=i: self.pick_style(i))
             self.style_cards.append(card)
 
@@ -476,7 +500,8 @@ class App:
             return
         self.busy = True
         self.apply_btn.config(text="STO LAVORANDO...", bg=ROW_SEL, fg=MUTED)
-        args = argparse.Namespace(colors=self.manual, layout=self.layout,
+        style = "A mano" if self.style_idx < 0 else self.styles[self.style_idx][0]
+        args = argparse.Namespace(colors=self.manual, layout=self.layout, style=style,
                                   no_statues=not self.statues_on, cascate=self.falls_on, dry_run=False)
 
         def work():
@@ -499,6 +524,11 @@ class App:
             finally:
                 self.lines.put(None)
         threading.Thread(target=work, daemon=True).start()
+
+    def show_history(self):
+        sb.log("STORICO DELLE SKIN FATTE")
+        for line in sb.history_lines():
+            sb.log("  " + line)
 
     def clean_all(self):
         """Tiene solo l'ultima skin esportata e cancella le altre da UEFN e dal PC, dopo una conferma."""

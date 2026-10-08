@@ -892,6 +892,48 @@ def scenery(ue, cascate):
         log("  ATTENZIONE: cascate non riuscite:", str(exc)[:200])
 
 
+HISTORY = HERE / "storico.json"
+
+
+def load_history():
+    """{codice: {"nome": ..., "usi": [{"data", "stile", "colori", "disegno"}]}}: le skin gia' applicate."""
+    try:
+        return json.loads(HISTORY.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def record_use(code, style, colors, layout):
+    data = load_history()
+    entry = data.setdefault(code, {"nome": display_name(code), "usi": []})
+    entry["nome"] = display_name(code)
+    entry["usi"].append({"data": time.strftime("%Y-%m-%d %H:%M"), "stile": style,
+                         "colori": [wb.to_hex(c) for c in colors], "disegno": layout or "come prima"})
+    try:
+        HISTORY.write_text(json.dumps(data, indent=1, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def used_styles(code, history=None):
+    """{stile: [date]} degli stili gia' usati per una skin, dal piu' vecchio al piu' recente."""
+    used = {}
+    for use in (history if history is not None else load_history()).get(code, {}).get("usi", []):
+        used.setdefault(use["stile"], []).append(use["data"])
+    return used
+
+
+def history_lines():
+    """Lo storico in righe leggibili, dalla skin fatta piu' di recente."""
+    data = load_history()
+    lines = []
+    for code, entry in sorted(data.items(), key=lambda kv: kv[1]["usi"][-1]["data"] if kv[1]["usi"] else "", reverse=True):
+        lines.append(f"{entry.get('nome', code)}  [{code}]  -  fatta {len(entry['usi'])} volte")
+        for use in entry["usi"]:
+            lines.append(f"      {use['data']}   stile {use['stile']}   ({' '.join(use['colori'])})   disegno {use['disegno']}")
+    return lines or ["Lo storico e' vuoto: si riempie da solo ogni volta che applichi una skin."]
+
+
 def run_skin(code, args):
     skins = exported_skins()
     if not skins:
@@ -945,6 +987,9 @@ def run_skin(code, args):
         count, what = place_statues(ue, mesh, info.get("size_m"))
         log(f"  Statue {what}: {count}")
     scenery(ue, getattr(args, "cascate", None))
+    style = getattr(args, "style", None) or ("A mano" if args.colors else "Automatico")
+    record_use(code, style, colors, args.layout)
+    log(f"  Segnato nello storico: {display_name(code)} con lo stile {style}")
     log(f"Fatto e salvato in {time.time() - started:.0f} secondi.")
 
 

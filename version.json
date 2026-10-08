@@ -1,5 +1,5 @@
 {
-  "version": "1.0.18",
+  "version": "1.0.19",
   "date": "2026-10-08",
-  "notes": "Skin da tingere (es. Yeddy): il pelo grigio prende un colore, con il tasto 'Colore della skin' per sceglierlo"
+  "notes": "Storico: il bot ricorda le skin fatte e gli stili usati, segna gli stili gia' usati e propone il primo libero"
 }

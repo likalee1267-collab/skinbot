@@ -1,7 +1,7 @@
 {
- "version": "1.0.18",
+ "version": "1.0.19",
  "date": "2026-10-08",
- "notes": "Skin da tingere (es. Yeddy): il pelo grigio prende un colore, con il tasto 'Colore della skin' per sceglierlo",
+ "notes": "Storico: il bot ricorda le skin fatte e gli stili usati, segna gli stili gia' usati e propone il primo libero",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,7 +20,7 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "16e16fa334d154e0221fb342fd1479c026bf37be723c5b409a3234eba7d58b60",
+   "sha256": "81f97e4783575d0d9f8138660dcd6c78134db072062958119d0a9a89e112b77a",
    "size": 179
   },
   "updater.py": {
@@ -28,12 +28,12 @@
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "710fc061bc839536b38a6c57af20d9df392542a0dd0f9036e386754a13ab7717",
-   "size": 51926
+   "sha256": "651380cda4ac4e9122b7f6c7188f151de534e082e6a925184fd358ab81bf0b3b",
+   "size": 53928
   },
   "skinbot_gui.py": {
-   "sha256": "5267f44fecb2dc8637162cbc482627be1eeb0e8bc56182a326cf3e893169398f",
-   "size": 32578
+   "sha256": "5d541b820ffaba7bd869883b66f7f872f51f86b921dadf3cb3577365099d7135",
+   "size": 33611
   },
   "skinbot_setup.py": {
    "sha256": "69e5df1019222421ab2384d868c1381871a9b08b169accaf5ca95f9510336b1b",
