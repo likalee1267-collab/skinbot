@@ -41,7 +41,7 @@ class App:
         self.root = root
         root.title("Skinbot")
         root.configure(bg=BG)
-        root.minsize(940, 800)
+        root.minsize(940, 880)
         self.lines = queue.Queue()
         self.busy = False
         self.manual = None                         # palette scelta a mano, altrimenti automatica
@@ -111,13 +111,26 @@ class App:
         left.pack(side="left", fill="y")
         left.pack_propagate(False)
         tk.Label(left, text="Skin esportate", font=FONT_B, bg=PANEL, fg=TEXT).pack(anchor="w", padx=12, pady=(12, 6))
-        self.list_box = tk.Frame(left, bg=PANEL)
-        self.list_box.pack(fill="both", expand=True, padx=6)
+        # i tasti in fondo si impacchettano prima dell'elenco: cosi' restano visibili anche con tante skin
         clean = self._button(left, "Pulisci tutte le skin", self.clean_all, small=True)
         clean.config(fg="#ff8a80")
         clean.pack(side="bottom", fill="x", padx=10, pady=(0, 10))
         self._button(left, "Prepara questa mappa", self.setup_map, small=True).pack(side="bottom", fill="x", padx=10, pady=(0, 6))
         self._button(left, "Aggiorna elenco", self.refresh, small=True).pack(side="bottom", fill="x", padx=10, pady=6)
+        # elenco scorrevole con la rotella
+        self.list_canvas = tk.Canvas(left, bg=PANEL, highlightthickness=0)
+        self.list_canvas.pack(fill="both", expand=True, padx=6)
+        self.list_box = tk.Frame(self.list_canvas, bg=PANEL)
+        window = self.list_canvas.create_window((0, 0), window=self.list_box, anchor="nw")
+        self.list_box.bind("<Configure>", lambda e: self.list_canvas.config(scrollregion=self.list_canvas.bbox("all")))
+        self.list_canvas.bind("<Configure>", lambda e: self.list_canvas.itemconfig(window, width=e.width))
+
+        def wheel(event):
+            over = self.root.winfo_containing(event.x_root, event.y_root)
+            if over is not None and str(over).startswith(str(self.list_canvas)) \
+                    and self.list_box.winfo_height() > self.list_canvas.winfo_height():
+                self.list_canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
+        self.root.bind_all("<MouseWheel>", wheel)
 
         right = tk.Frame(body, bg=BG)
         right.pack(side="left", fill="both", expand=True, padx=(16, 0))
@@ -191,7 +204,8 @@ class App:
     # ------------------------------------------------------------ elenco
 
     def refresh(self):
-        self.skins = sb.exported_skins()
+        # i pezzi sciolti (braccia, teste, accessori senza corpo) non sono skin: fuori dall'elenco
+        self.skins = {c: f for c, f in sb.exported_skins().items() if sb.has_body(f)}
         newest = sb.latest_code(self.skins)
         for child in self.list_box.winfo_children():
             child.destroy()

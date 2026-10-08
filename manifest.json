@@ -1,7 +1,7 @@
 {
- "version": "1.0.15",
+ "version": "1.0.16",
  "date": "2026-10-08",
- "notes": "Nuovo tasto 'Pulisci tutte le skin': toglie statue e skin da UEFN e gli export dal PC, con conferma",
+ "notes": "Elenco skin: tasti in fondo sempre visibili, elenco scorrevole, niente piu' pezzi sciolti (braccia, accessori)",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,8 +20,8 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "a5a4bb2ed7716eeee61772040816dbefc6c38311c75a4ea356d2e9dd9b2f046d",
-   "size": 169
+   "sha256": "221358e3da7121d562bb83df69b3e9ea6a9b4af49c6769f9cd1aae6d8e5eb6bc",
+   "size": 180
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
@@ -32,8 +32,8 @@
    "size": 46406
   },
   "skinbot_gui.py": {
-   "sha256": "ba984f40f4fb7d91375cae28ae7bc1d3ae92af6b8527dd304f7ac2edefb79a34",
-   "size": 29955
+   "sha256": "485ee754fb9183335e7cb9a8462cded46cd06786c9c9d2d03c0c173edcca053c",
+   "size": 30407
   },
   "skinbot_setup.py": {
    "sha256": "69e5df1019222421ab2384d868c1381871a9b08b169accaf5ca95f9510336b1b",

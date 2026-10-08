@@ -1,7 +1,7 @@
 # Skinbot
 
-Canale di aggiornamento automatico di Skinbot. Versione 1.0.15 (2026-10-08).
+Canale di aggiornamento automatico di Skinbot. Versione 1.0.16 (2026-10-08).
 
-Nuovo tasto 'Pulisci tutte le skin': toglie statue e skin da UEFN e gli export dal PC, con conferma
+Elenco skin: tasti in fondo sempre visibili, elenco scorrevole, niente piu' pezzi sciolti (braccia, accessori)
 
 Per installare: scarica ed esegui `Installa Skinbot.bat`.
