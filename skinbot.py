@@ -337,18 +337,61 @@ def part_textures(code, borrow=True):
             for part, kinds in part_textures(other, borrow=False).items():
                 if not part.startswith("Body"):
                     parts.setdefault(part, kinds)
+    parts_glass = None
+    if borrow:                                     # skin colorate dal gioco e non da una texture
+        for part, kinds in parts.items():
+            tinted = tint_texture(code, part, kinds["color"])
+            if tinted:
+                kinds["color"] = tinted
+                # in queste skin dentro la cupola di vetro c'e' uno spiritello azzurro: la cupola prende quel colore
+                parts_glass = glass_texture("T_WB_GlassSprite.png", (70, 205, 235))
     if borrow and parts:                           # lenti degli occhiali: scure, non con la texture del corpo
         for part in ("Glass", "Lens"):
-            parts.setdefault(part, {"color": glass_texture()})
+            parts.setdefault(part, {"color": parts_glass or glass_texture()})
     return parts
 
 
-def glass_texture():
+# skin "a zone": l'export non ha i colori (sono parametri del gioco), solo una maschera delle zone.
+# Colori di ripiego scelti sulla skin vera (armatura azzurra, parti scure, dettagli chiari, gemme rosse).
+ZONE_COLORS = {"R": (74, 160, 214), "G": (184, 196, 208), "B": (43, 51, 64), "none": (22, 24, 29), "gem": (255, 58, 46)}
+
+
+def tint_texture(code, part, color):
+    """Texture colore costruita dalla maschera delle zone, per le texture dati "_D_TA". None se non serve."""
+    if not color.stem.endswith("_D_TA"):
+        return None
+    mask = color.with_name(color.stem[:-len("_D_TA")] + "_FX.png")
+    if not mask.is_file():
+        return None
+    out = HERE / "skins" / code / f"T_{code}_{part}_Tint.png"
+    if out.is_file() and out.stat().st_mtime >= max(color.stat().st_mtime, mask.stat().st_mtime):
+        return out
+    import numpy as np
     from PIL import Image
-    png = HERE / "uefn" / "T_WB_Glass.png"
+    size = (1024, 1024)
+    data = np.asarray(Image.open(color).convert("RGB").resize(size), dtype=np.float32) / 255
+    zone = np.asarray(Image.open(mask).convert("RGB").resize(size), dtype=np.float32) / 255
+    rgb = np.empty_like(data)
+    rgb[:] = np.array(ZONE_COLORS["none"]) / 255
+    for i, key in enumerate("RGB"):                # le zone si sommano sopra il fondo scuro
+        w = zone[..., i:i + 1]
+        rgb = rgb * (1 - w) + np.array(ZONE_COLORS[key]) / 255 * w
+    lo, hi = np.percentile(data[..., 0], (2, 98))  # il canale rosso fa da chiaroscuro
+    shade = np.clip((data[..., 0:1] - lo) / max(hi - lo, 1e-3), 0, 1)
+    rgb *= 0.7 + 0.4 * shade
+    gem = np.clip((data[..., 2:3] - 0.35) / 0.35, 0, 1)      # il blu segna le gemme
+    rgb = rgb * (1 - gem) + np.array(ZONE_COLORS["gem"]) / 255 * gem
+    out.parent.mkdir(parents=True, exist_ok=True)
+    Image.fromarray((np.clip(rgb, 0, 1) * 255).astype("uint8"), "RGB").save(out)
+    return out
+
+
+def glass_texture(name="T_WB_Glass.png", color=(14, 16, 24)):
+    from PIL import Image
+    png = HERE / "uefn" / name
     if not png.is_file():
         png.parent.mkdir(exist_ok=True)
-        Image.new("RGB", (8, 8), (14, 16, 24)).save(png)
+        Image.new("RGB", (8, 8), color).save(png)
     return png
 
 

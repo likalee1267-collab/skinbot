@@ -1,7 +1,7 @@
 {
- "version": "1.0.13",
+ "version": "1.0.14",
  "date": "2026-10-08",
- "notes": "Skin a pezzi (es. PixieParts): braccia esportate a parte riattaccate, riconosciute le texture _D_TA e _D2",
+ "notes": "Skin a zone (Guardian/PixieParts): colorate dalla maschera delle zone con i colori della skin vera",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,16 +20,16 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "cfa60acab2061778e70247fced959b92d794dba36bb37dd19e91826eb9041508",
-   "size": 175
+   "sha256": "da16dda9653ff396214b4524fb8e0305cbad9aaf7de68826e95f4359d209e2c1",
+   "size": 168
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "681ce2861cff02059b7065e58cba72a1c7473caa55c0e13e69c72197689437f8",
-   "size": 40922
+   "sha256": "b10f843dde9c08bfdab0a8f3882d649f56bdcfec8266d8c69b13036e42910207",
+   "size": 43337
   },
   "skinbot_gui.py": {
    "sha256": "42019b6c8a25e36f7fdeea5ebf0ddfb1839eade9d79e2e7645e63a7be8d74ae6",
