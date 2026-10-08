@@ -882,60 +882,113 @@ def safe_run(code, args):
     return False
 
 
+def keep_folders(code):
+    """Le cartelle di FortnitePorting che servono alla skin da tenere (modelli e texture, anche prese in prestito)."""
+    files = list(exported_skins().get(code, []))
+    for kinds in part_textures(code).values():
+        files += list(kinds.values())
+    eye = eye_texture(code)
+    if eye:
+        files.append(eye)
+    keep = set()
+    for f in files:
+        f = Path(f)
+        for parent in f.parents:
+            if parent.name in ("Meshes", "Textures") and FP_ASSETS in parent.parents:
+                keep.add(parent.parent)
+                break
+    return keep
+
+
+def old_files(code):
+    """I file sul PC da cancellare tenendo solo la skin `code`: export vecchi e foto delle altre skin."""
+    keep = keep_folders(code)
+    old = []
+    if FP_ASSETS.is_dir():
+        for f in FP_ASSETS.rglob("*"):
+            if f.is_file() and not any(k == f.parent or k in f.parents for k in keep):
+                old.append(f)
+    cache = HERE / "skins"
+    if cache.is_dir():
+        old += [f for f in cache.rglob("*") if f.is_file() and f.relative_to(cache).parts[0].lower() != code.lower()]
+    return old
+
+
 def clean_plan():
-    """Cosa cancellerebbe 'Pulisci tutte le skin', per la conferma: (skin esportate, file, MB)."""
-    files = [f for root in (FP_ASSETS, HERE / "skins") if root.is_dir() for f in root.rglob("*") if f.is_file()]
-    return len(raw_skins()), len(files), round(sum(f.stat().st_size for f in files) / 1e6)
+    """Per la conferma di 'Tieni solo l'ultima skin': (codice tenuto, skin da togliere, file, MB)."""
+    skins = {c: f for c, f in exported_skins().items() if has_body(f)}
+    code = latest_code(skins)
+    if not code:
+        return None, 0, 0, 0
+    files = old_files(code)
+    return code, len(skins) - 1, len(files), round(sum(f.stat().st_size for f in files) / 1e6)
 
 
-def clean_all():
-    """Toglie tutte le skin: statue e asset importati in UEFN, export di FortnitePorting e foto sul PC.
+def clean_all(keep=None):
+    """Tiene solo una skin (di norma l'ultima esportata) e cancella le altre, dal PC e dal progetto UEFN.
 
-    Muri, cielo, materiali del bot e cascate restano. Alla prossima skin le statue vengono ricreate.
+    Nel progetto resta anche la skin che le statue stanno usando, cosi' la mappa non si rompe.
+    Muri, cielo, materiali del bot, statue e cascate non vengono toccati.
     """
-    import shutil
+    skins = {c: f for c, f in exported_skins().items() if has_body(f)}
+    keep = keep or latest_code(skins)
+    if not keep:
+        log("Non c'e' nessuna skin esportata: niente da pulire.")
+        return
+    log(f"Tengo solo {display_name(keep)} [{keep}] e cancello le altre skin.")
+    files = old_files(keep)                        # prima di toccare qualsiasi cosa
     try:
         ue = Uefn()
         level = ue.call(T_SCENE, "get_current_level") or ""
         configure(level.strip("/").split("/")[0])
     except BotError:
         ue = None
-        log("UEFN e' chiuso: pulisco solo il PC. Le skin gia' importate nel progetto restano li'.")
+        log("  UEFN e' chiuso: pulisco solo il PC. Le skin gia' importate nel progetto restano li'.")
     if ue:
+        used = {f"Skin_{keep}".lower()}
         try:
-            statues = ue.call(T_SCENE, "get_actors_in_folder", folder_path=STATUE_FOLDER, recursive=False) or []
+            for desc in ue.call(T_SCENE, "get_actors_in_folder", folder_path=STATUE_FOLDER, recursive=False) or []:
+                got = json.loads(ue.call(T_OBJ, "get_properties", properties=["staticMesh"],
+                                         instance={"refPath": desc["actorPath"] + ".StaticMeshComponent0"}))
+                path = ((got.get("staticMesh") or {}).get("refPath") or "").split(".")[0]
+                if "/Skins/" in path:
+                    used.add(path.split("/Skins/")[1].split("/")[0].lower())
         except RuntimeError:
-            statues = []
-        labels = {spot[0] for spot in STATUE_SPOTS}
-        gone = 0
-        for desc in statues:
-            if desc.get("label") in labels:          # solo le statue messe dal bot
-                ue.call(T_SCENE, "remove_from_scene", actor={"refPath": desc["actorPath"]})
-                gone += 1
-        log(f"  Statue tolte dalla mappa: {gone}")
-        folder = f"{ROOT}/Skins"
+            pass
+        gone = kept = 0
         try:
-            found = ue.call(T_ASSET, "find_assets", folder_path=folder, recursive=True) or []
-            if found:
-                ok = ue.call(T_ASSET, "delete", path=folder)
-                log(f"  Asset delle skin cancellati dal progetto: {len(found)}" if ok
-                    else "  ATTENZIONE: UEFN non ha cancellato la cartella delle skin (qualcosa le usa ancora).")
-            else:
-                log("  Nel progetto non c'erano skin importate.")
-        except RuntimeError as exc:
-            log("  ATTENZIONE: skin non cancellate dal progetto:", str(exc)[:200])
-    removed = 0
-    for root in (FP_ASSETS, HERE / "skins"):
-        if not root.is_dir():
-            continue
-        for child in list(root.iterdir()):
+            folders = ue.call(T_ASSET, "list_folders", root_path=f"{ROOT}/Skins", recursive=False) or []
+        except RuntimeError:
+            folders = []
+        for folder in folders:
+            folder = folder.rstrip("/")
+            if folder.rsplit("/", 1)[-1].lower() in used:
+                kept += 1
+                continue
             try:
-                shutil.rmtree(child) if child.is_dir() else child.unlink()
-                removed += 1
-            except OSError as exc:
-                log("  Non riesco a cancellare", child.name + ":", str(exc)[:120])
-    log("  Export di FortnitePorting e foto delle skin cancellati dal PC." if removed else "  Sul PC non c'era niente da cancellare.")
-    log("Pulizia finita: esporta una skin nuova per ricominciare.")
+                if ue.call(T_ASSET, "delete", path=folder):
+                    gone += 1
+                else:
+                    log("  ATTENZIONE: UEFN non ha cancellato", folder.rsplit("/", 1)[-1], "(qualcosa la usa ancora).")
+            except RuntimeError as exc:
+                log("  ATTENZIONE:", folder.rsplit("/", 1)[-1], "non cancellata:", str(exc)[:160])
+        log(f"  Nel progetto UEFN: {gone} skin cancellate, {kept} tenute (l'ultima e quella sulle statue).")
+    removed = 0
+    for f in files:
+        try:
+            f.unlink()
+            removed += 1
+        except OSError as exc:
+            log("  Non riesco a cancellare", f.name + ":", str(exc)[:120])
+    for root in (FP_ASSETS, HERE / "skins"):       # via le cartelle rimaste vuote
+        if root.is_dir():
+            for d in sorted((d for d in root.rglob("*") if d.is_dir()), key=lambda d: -len(d.parts)):
+                try:
+                    d.rmdir()
+                except OSError:
+                    pass
+    log(f"  Sul PC: {removed} file vecchi cancellati.")
+    log("Pulizia finita.")
 
 
 def safe_clean():

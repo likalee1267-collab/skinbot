@@ -112,7 +112,7 @@ class App:
         left.pack_propagate(False)
         tk.Label(left, text="Skin esportate", font=FONT_B, bg=PANEL, fg=TEXT).pack(anchor="w", padx=12, pady=(12, 6))
         # i tasti in fondo si impacchettano prima dell'elenco: cosi' restano visibili anche con tante skin
-        clean = self._button(left, "Pulisci tutte le skin", self.clean_all, small=True)
+        clean = self._button(left, "Tieni solo l'ultima skin", self.clean_all, small=True)
         clean.config(fg="#ff8a80")
         clean.pack(side="bottom", fill="x", padx=10, pady=(0, 10))
         self._button(left, "Prepara questa mappa", self.setup_map, small=True).pack(side="bottom", fill="x", padx=10, pady=(0, 6))
@@ -475,16 +475,21 @@ class App:
         threading.Thread(target=work, daemon=True).start()
 
     def clean_all(self):
-        """Toglie tutte le skin da UEFN e dal PC, dopo una conferma."""
+        """Tiene solo l'ultima skin esportata e cancella le altre da UEFN e dal PC, dopo una conferma."""
         if self.busy or self.preparing:
             sb.log("Sto ancora lavorando: riprova tra qualche secondo.")
             return
-        skins, files, mb = sb.clean_plan()
-        if not messagebox.askyesno("Pulisci tutte le skin", (
-                f"Sto per cancellare TUTTE le skin:\n\n"
-                f"  -  dalla mappa: le tre statue e le skin importate nel progetto UEFN\n"
-                f"  -  dal PC: {skins} skin esportate da FortnitePorting e le loro foto ({files} file, {mb} MB)\n\n"
-                f"Muri, cielo e cascate restano. Non si puo' annullare.\n\nContinuo?"), icon="warning", default="no"):
+        code, others, files, mb = sb.clean_plan()
+        if not code:
+            sb.log("Non c'e' nessuna skin esportata: niente da pulire.")
+            return
+        if not messagebox.askyesno("Tieni solo l'ultima skin", (
+                f"Tengo solo l'ultima skin esportata:\n\n      {sb.display_name(code, self.names)}\n\n"
+                f"e cancello tutte le altre:\n\n"
+                f"  -  dal PC: {others} skin vecchie e i pezzi sciolti ({files} file, {mb} MB)\n"
+                f"  -  dal progetto UEFN: le skin vecchie importate\n\n"
+                f"Resta anche la skin che ora e' sulle statue. Muri, cielo e cascate non cambiano.\n"
+                f"Non si puo' annullare.\n\nContinuo?"), icon="warning", default="no"):
             return
         self.busy = True
         self.apply_btn.config(text="PULISCO...", bg=ROW_SEL, fg=MUTED)

@@ -1,7 +1,7 @@
 {
- "version": "1.0.16",
+ "version": "1.0.17",
  "date": "2026-10-08",
- "notes": "Elenco skin: tasti in fondo sempre visibili, elenco scorrevole, niente piu' pezzi sciolti (braccia, accessori)",
+ "notes": "Il tasto di pulizia ora tiene l'ultima skin esportata e cancella solo quelle vecchie",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,20 +20,20 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "221358e3da7121d562bb83df69b3e9ea6a9b4af49c6769f9cd1aae6d8e5eb6bc",
-   "size": 180
+   "sha256": "26f5665fda7d1591bde65c108134cc24ff0f65ae34f2caeacd92e0d1618f8008",
+   "size": 154
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "e46e8d684624fefbe50eae47416424516e62e41e3b7b406919b1ae1b9a8fd184",
-   "size": 46406
+   "sha256": "a0b727adcb37b81471041820881c3fe4211a55078bcb5edbb58f7382f2cbebd6",
+   "size": 48445
   },
   "skinbot_gui.py": {
-   "sha256": "485ee754fb9183335e7cb9a8462cded46cd06786c9c9d2d03c0c173edcca053c",
-   "size": 30407
+   "sha256": "9189b31c9c2eda9daac1c667e292973235601b05b660ce0aebc5a72e0857edc7",
+   "size": 31373
   },
   "skinbot_setup.py": {
    "sha256": "69e5df1019222421ab2384d868c1381871a9b08b169accaf5ca95f9510336b1b",
