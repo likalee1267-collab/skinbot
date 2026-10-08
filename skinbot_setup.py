@@ -136,13 +136,30 @@ def build_eye_material(ue, black):
 
 # ---------------------------------------------------------------- livello
 
+# la zona della rampa: solo gli attori qui dentro vengono collegati
+RAMP_BOX = ((120500, -161500, 225000), (137000, -158000, 234500))
+
+
+def in_ramp(desc):
+    lo, hi = RAMP_BOX
+    b = desc.get("bounds") or {}
+    try:
+        return all(b["max"][k] >= lo[i] and b["min"][k] <= hi[i] for i, k in enumerate("xyz"))
+    except (KeyError, TypeError):
+        return False
+
+
 def connect_walls(ue):
-    """Muri, pavimenti e rampe che usano ancora il materiale rosa passano a quello ricolorabile."""
-    changed, seen = 0, set()
+    """Muri, pavimenti e rampe della rampa passano al materiale ricolorabile.
+
+    Il materiale da sostituire e' quello rosa originale; se sulla mappa ha un altro nome, vale
+    quello usato dalla maggior parte dei muri della rampa. Ritorna (collegati, gia' collegati, nota).
+    """
+    actors, seen = [], set()
     for label in WALL_LABELS:
         for desc in ue.call(sb.T_SCENE, "find_actors", collision_channels=[], name=label) or []:
             path = desc["actorPath"]
-            if path in seen:
+            if path in seen or not in_ramp(desc):
                 continue
             seen.add(path)
             comp = {"refPath": path + ".StaticMeshComponent0"}
@@ -151,13 +168,34 @@ def connect_walls(ue):
                                           properties=["overrideMaterials"])).get("overrideMaterials") or []
             except RuntimeError:
                 continue
-            if not any(m and OLD_WALL_MATERIAL in m.get("refPath", "") for m in mats):
-                continue
-            new = [sb.ref(sb.WALL_MI) if (m and OLD_WALL_MATERIAL in m.get("refPath", "")) else m for m in mats]
-            props(ue, comp, overrideMaterials=new)
-            ue.call(sb.T_SCENE, "save_actor", actor={"refPath": path})
-            changed += 1
-    return changed
+            actors.append((path, comp, mats, label))
+    wall_mi = sb.ref(sb.WALL_MI)["refPath"]
+    counts, already = {}, 0
+    for path, comp, mats, label in actors:
+        refs = {m.get("refPath", "") for m in mats if m}
+        if wall_mi in refs:
+            already += 1
+        for r in refs - {wall_mi, ""}:
+            counts[r] = counts.get(r, 0) + 1
+    sb.log("  Attori nella zona della rampa:", len(actors), "| materiali trovati:",
+           ", ".join(f"{r.split('.')[-1]} x{n}" for r, n in sorted(counts.items(), key=lambda kv: -kv[1])[:6]) or "nessuno")
+    targets = {r for r in counts if OLD_WALL_MATERIAL in r}
+    note = ""
+    if not targets and counts and not already:
+        # nome diverso su questa mappa: il materiale dei muri e' quello di gran lunga piu' usato
+        top, n = max(counts.items(), key=lambda kv: kv[1])
+        if n >= 0.5 * len(actors):
+            targets = {top}
+            note = f"materiale riconosciuto dall'uso: {top.split('.')[-1]}"
+    changed = 0
+    for path, comp, mats, label in actors:
+        if not any(m and m.get("refPath", "") in targets for m in mats):
+            continue
+        new = [sb.ref(sb.WALL_MI) if (m and m.get("refPath", "") in targets) else m for m in mats]
+        props(ue, comp, overrideMaterials=new)
+        ue.call(sb.T_SCENE, "save_actor", actor={"refPath": path})
+        changed += 1
+    return changed, already, note
 
 
 def connect_sky(ue):
@@ -224,6 +262,9 @@ def run(assets_only=False):
     sb.log("  Materiali creati:", ", ".join(made) if made else "nessuno, c'erano gia'")
     if assets_only:
         return
-    sb.log("  Muri, pavimenti e rampe collegati:", connect_walls(ue))
+    changed, already, note = connect_walls(ue)
+    sb.log(f"  Muri, pavimenti e rampe collegati: {changed} nuovi, {already} gia' collegati" + (f" ({note})" if note else ""))
+    if not changed and not already:
+        sb.log("  ATTENZIONE: nessun muro collegato. I colori non cambieranno: manda skinbot.log a chi sviluppa il bot.")
     sb.log("  Cielo:", connect_sky(ue))
     sb.log("Mappa pronta: esporta una skin e premi APPLICA A UEFN.")

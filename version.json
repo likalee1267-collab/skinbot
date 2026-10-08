@@ -1,5 +1,5 @@
 {
-  "version": "1.0.4",
+  "version": "1.0.5",
   "date": "2026-10-08",
-  "notes": "Nomi veri delle skin e stili di colore: otto varianti per la stessa skin"
+  "notes": "Muri: collegamento piu' robusto in Prepara questa mappa e avviso se i colori non possono cambiare"
 }

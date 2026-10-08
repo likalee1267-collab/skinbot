@@ -1,7 +1,7 @@
 {
- "version": "1.0.4",
+ "version": "1.0.5",
  "date": "2026-10-08",
- "notes": "Nomi veri delle skin e stili di colore: otto varianti per la stessa skin",
+ "notes": "Muri: collegamento piu' robusto in Prepara questa mappa e avviso se i colori non possono cambiare",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,24 +20,24 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "041a69110e4246106509d68b00f72cfb4ff8277482a25586b5002e00a967ab0e",
-   "size": 141
+   "sha256": "c31562032d6c389aa3b21414b1593648c049dd3bafdad77853d9b6bd2e331925",
+   "size": 166
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "cf2eff17b99920859fd750d6c95c43cb37887515966bc1609252acacd7b45eb3",
-   "size": 33071
+   "sha256": "66546cbd72718223f2528992c96ba19d7db9b9c4b6398c868601ddb3007c8e21",
+   "size": 33492
   },
   "skinbot_gui.py": {
    "sha256": "22669eefedde1f0b14055e75656064c241727c5b5b2c55175ce515e0df4941fa",
    "size": 27032
   },
   "skinbot_setup.py": {
-   "sha256": "1bd9f6ee59f4dcf4375e40dfb5a37673cff3d5e9bd15e7fd75b6030826c83af0",
-   "size": 11073
+   "sha256": "44bc4259fcffee7560c0ad6724573d905517c6bb2e6674f98118f3c54cca5514",
+   "size": 13198
   },
   "skin_convert.py": {
    "sha256": "24f2ac9e6c1a324925d37f6ea4b2627e4a25a0dcf8094c19b1479b43c48daee5",

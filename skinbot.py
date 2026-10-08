@@ -656,6 +656,13 @@ def run_skin(code, args):
     if args.layout:
         log("  Disegno esagoni:", apply_layout(ue, args.layout))
     log("  Rampa e cielo ricolorati" if apply_theme(ue, colors) else "  Rampa ricolorata (cielo non collegato)")
+    try:                                          # i colori si vedono solo se qualcosa usa il materiale del bot
+        users = ue.call(T_ASSET, "get_referencers", asset_path=WALL_MI) or []
+        if not users:
+            log("  ATTENZIONE: nessun muro usa il materiale del bot, quindi a vista non cambia nulla. "
+                "Premi 'Prepara questa mappa' e riprova.")
+    except RuntimeError:
+        pass
     if not args.no_statues:
         count, what = place_statues(ue, mesh)
         log(f"  Statue {what}: {count}")
