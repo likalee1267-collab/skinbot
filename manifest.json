@@ -1,7 +1,7 @@
 {
- "version": "1.0.7",
+ "version": "1.0.8",
  "date": "2026-10-08",
- "notes": "Statue: se UEFN importa la skin girata di 90 gradi il bot se ne accorge e la raddrizza verso la rampa",
+ "notes": "Skin bianche: il bot trova le texture anche quando hanno nomi insoliti (es. Spider-Man) e rifa' la foto da solo",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,20 +20,20 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "b6c6e5e5caf226af563ce193ab83d0ccfdc27a74c2dad8f85e79dedbb8585b6a",
-   "size": 170
+   "sha256": "d8df4fea65e8f273de56df9db398b98e8b5fa0a3a6f5058fab8a02c2014e30c3",
+   "size": 180
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "541597098d3921805117c935ac9d5d6d2e4c3bef279ebc0dbb01194f9c2fddd7",
-   "size": 35750
+   "sha256": "69f394e8227767369bec844a968924844ea91715e081137f1b8280a4ba1bc92b",
+   "size": 38233
   },
   "skinbot_gui.py": {
-   "sha256": "22669eefedde1f0b14055e75656064c241727c5b5b2c55175ce515e0df4941fa",
-   "size": 27032
+   "sha256": "d4ca8fbc21cc8cf5e477228e5c374f4d882a93bb75f824528c621a4e284ad1d7",
+   "size": 27100
   },
   "skinbot_setup.py": {
    "sha256": "69e5df1019222421ab2384d868c1381871a9b08b169accaf5ca95f9510336b1b",

@@ -224,10 +224,12 @@ class App:
 
     def prepare(self, code):
         """Senza toccare UEFN: converte la skin per avere foto e colori misurati."""
-        if not code or code in self.preparing or self.busy or self.preview_path(code).is_file():
+        if not code or code in self.preparing or self.busy:
+            return
+        models, parts = self.skins[code], sb.part_textures(code)
+        if self.preview_path(code).is_file() and not sb.preview_stale(code, parts):
             return
         self.preparing.add(code)
-        models, parts = self.skins[code], sb.part_textures(code)
 
         def work():
             try:

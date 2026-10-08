@@ -238,6 +238,54 @@ def latest_code(skins):
     return max(own_head, key=lambda c: (stamp[c], len(skins[c])))
 
 
+PART_WORDS = ["FaceAcc", "Head", "Face", "Hat", "Hair", "Body"]
+
+
+def texture_folders(code):
+    """Le cartelle Textures accanto ai modelli di questa skin."""
+    folders = []
+    for model in raw_skins().get(code, []):
+        for parent in list(model.parents)[:3]:
+            tex = parent / "Textures"
+            if tex.is_dir() and tex not in folders:
+                folders.append(tex)
+    return folders
+
+
+def folder_textures(code):
+    """Ripiego: le texture si riconoscono dalla cartella della skin e dal suffisso, qualunque nome abbiano."""
+    best = {}
+    for folder in texture_folders(code):
+        for tex in sorted(folder.rglob("*.png")):
+            tokens = re.sub(r"^T_", "", tex.stem, flags=re.I).split("_")
+            for kind, names in SUFFIXES.items():
+                if tokens[-1] not in names:
+                    continue
+                words = [t.lower() for t in tokens[:-1]]
+                part = next((w for w in PART_WORDS if w.lower() in words), "Body")
+                rank = (names.index(tokens[-1]), -tex.stat().st_size)     # a pari suffisso vale la piu' grande
+                slot = best.setdefault(part, {})
+                if kind not in slot or rank < slot[kind][0]:
+                    slot[kind] = (rank, tex)
+    parts = {part: {kind: tex for kind, (_, tex) in kinds.items()} for part, kinds in best.items()}
+    return {part: kinds for part, kinds in parts.items() if "color" in kinds}
+
+
+def texture_report(code):
+    """Per il log: cosa c'e' nelle cartelle texture di una skin rimasta senza colori."""
+    names = [tex.name for folder in texture_folders(code) for tex in sorted(folder.rglob("*.png"))]
+    return ", ".join(names[:40]) or "nessuna texture esportata accanto al modello"
+
+
+def preview_stale(code, parts):
+    """La foto salvata e' stata fatta con texture diverse da quelle che il bot trova adesso."""
+    try:
+        used = json.loads((HERE / "skins" / code / "convert.json").read_text(encoding="utf-8")).get("textures", {})
+    except (OSError, ValueError):
+        return False
+    return used != {part: str(kinds["color"]) for part, kinds in parts.items()}
+
+
 def part_textures(code, borrow=True):
     """{"Body": {"color": path, "normal": path, "emissive": path}, ...} per la skin."""
     best = {}
@@ -259,6 +307,8 @@ def part_textures(code, borrow=True):
                     slot[kind] = (rank, tex)
     parts = {part: {kind: tex for kind, (_, tex) in kinds.items()} for part, kinds in best.items()}
     parts = {part: kinds for part, kinds in parts.items() if "color" in kinds}
+    if not parts:                                  # texture con un nome fuori schema (es. Spider-Man)
+        parts = folder_textures(code)
     base = base_code(code, raw_skins()) if borrow else None
     if base:                                       # testa e viso dello stile base, se la variante non li ha
         for part, kinds in part_textures(base, borrow=False).items():
@@ -674,6 +724,9 @@ def run_skin(code, args):
     log(f"Skin: {display_name(code)} [{code}]   ({len(models)} mesh, {len(parts)} pezzi con texture)")
     if not has_body(models):
         log("  Attenzione: questa variante non ha il corpo, la skin uscira' incompleta.")
+    if not parts:
+        log("  ATTENZIONE: non trovo le texture colore di questa skin, uscira' bianca. Texture esportate:",
+            texture_report(code))
 
     if args.dry_run:
         colors, origin = choose_palette(code, parts, args.colors)
