@@ -67,6 +67,7 @@ T_MESH = "editor_toolset.toolsets.static_mesh.StaticMeshTools"
 T_MI = "editor_toolset.toolsets.material_instance.MaterialInstanceTools"
 T_OBJ = "editor_toolset.toolsets.object.ObjectTools"
 T_SCENE = "editor_toolset.toolsets.scene.SceneTools"
+T_ACTOR = "editor_toolset.toolsets.actor.ActorTools"
 
 # Suffissi delle texture per tipo, in ordine di preferenza (CL = colore delle skin cel-shaded).
 SUFFIXES = {
@@ -475,22 +476,40 @@ def apply_theme(ue, colors):
     return True
 
 
+def spot_transform(spot):
+    _, x, y, scale, yaw = spot
+    return {"location": {"x": x, "y": y, "z": STATUE_Z},
+            "rotation": {"pitch": 0, "yaw": yaw, "roll": 0},
+            "scale": {"x": scale, "y": scale, "z": scale}}
+
+
 def place_statues(ue, mesh):
     try:
         existing = ue.call(T_SCENE, "get_actors_in_folder", folder_path=STATUE_FOLDER, recursive=False) or []
     except RuntimeError:                           # mappa nuova: la cartella delle statue non esiste ancora
         existing = []
+    spots = {spot[0]: spot for spot in STATUE_SPOTS}
     if existing:                                  # stesse statue, cambia solo la mesh
+        fixed = 0
         for desc in existing:
+            actor = {"refPath": desc["actorPath"]}
             ue.call(T_OBJ, "set_properties", instance={"refPath": desc["actorPath"] + ".StaticMeshComponent0"},
                     values=json.dumps({"staticMesh": ref(mesh)}))
-            ue.call(T_SCENE, "save_actor", actor={"refPath": desc["actorPath"]})
-        return len(existing), "aggiornate"
-    for label, x, y, scale, yaw in STATUE_SPOTS:
-        actor = ue.call(T_SCENE, "add_to_scene_from_asset", asset_path=mesh, name=label, xform={
-            "location": {"x": x, "y": y, "z": STATUE_Z},
-            "rotation": {"pitch": 0, "yaw": yaw, "roll": 0},
-            "scale": {"x": scale, "y": scale, "z": scale}})
+            # statue create da una versione vecchia del bot: nate senza rotazione (guardano di lato)
+            spot = spots.get(desc.get("label", ""))
+            if spot:
+                rot = (ue.call(T_ACTOR, "get_actor_transform", actor=actor) or {}).get("rotation") or {}
+                if abs(rot.get("yaw", 0)) < 1:
+                    ue.call(T_ACTOR, "set_actor_transform", actor=actor, xform=spot_transform(spot))
+                    fixed += 1
+            ue.call(T_SCENE, "save_actor", actor=actor)
+        return len(existing), "aggiornate" + (f" ({fixed} raddrizzate)" if fixed else "")
+    for spot in STATUE_SPOTS:
+        xform = spot_transform(spot)
+        actor = ue.call(T_SCENE, "add_to_scene_from_asset", asset_path=mesh, name=spot[0], xform=xform)
+        # alla creazione UEFN puo' ignorare rotazione e scala: le imposto di nuovo, tutte insieme
+        ue.call(T_ACTOR, "set_actor_transform", actor=actor, xform=xform)
+        ue.call(T_ACTOR, "set_label", actor=actor, label=spot[0])
         ue.call(T_SCENE, "set_actor_folder", actor=actor, folder_path=STATUE_FOLDER)
         ue.call(T_SCENE, "save_actor", actor=actor)
     return len(STATUE_SPOTS), "create"

@@ -1,7 +1,7 @@
 {
- "version": "1.0.2",
+ "version": "1.0.3",
  "date": "2026-10-08",
- "notes": "Aggiornamento piu' sicuro: la nuova versione viene provata prima di installarla",
+ "notes": "Statue: posizione e rotazione corrette anche sulle mappe nuove",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,16 +20,16 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "6f4e017cd098bbbd8cf1ad061d24dda69f69985bc5764862894d35584e47de13",
-   "size": 148
+   "sha256": "0d0f5a54d997954a0329db8b4006b8e5080a66e2b0b2d1321a46ffac69c9c3db",
+   "size": 131
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "b02d891966ed1f1de7ffa8c42193dd036910808d6f6f18fe0a5ea92b41004b2a",
-   "size": 28551
+   "sha256": "8016395448bab2431dad50c2c0fe8e04843a300d88097c8c05b61fd95dad93e0",
+   "size": 29546
   },
   "skinbot_gui.py": {
    "sha256": "66d979110f9585e8ba5e0f9692767a26dfcec07272e6771ef7a56aecd7e8807c",
