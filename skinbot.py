@@ -24,6 +24,7 @@ import subprocess
 import sys
 import time
 import traceback
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -354,6 +355,99 @@ def choose_palette(code, parts, manual):
         return list(DEFAULT_PALETTE), "di ripiego (skin senza texture colore)"
 
 
+def skin_weights(code, parts):
+    """I colori della skin con il loro peso: misurati sulla superficie, o dalle texture."""
+    try:
+        colors = json.loads((HERE / "skins" / code / "surface_colors.json").read_text())
+        if colors:
+            return colors
+    except (OSError, ValueError):
+        pass
+    try:
+        return wb.texture_weights([k["color"] for k in parts.values()])
+    except (OSError, ValueError):
+        return []
+
+
+def palette_styles(code, parts):
+    """[(nome stile, [base, A, B]), ...] per la finestra: il primo e' la palette automatica."""
+    weights = skin_weights(code, parts)
+    if not weights:
+        return [("Automatico", list(DEFAULT_PALETTE))]
+    return wb.palette_variants(weights)
+
+
+def sky_source(colors):
+    """Il colore che tinge il cielo: il fondo, o la prima tinta vera se il fondo e' bianco/nero."""
+    for col in colors:
+        h, s, v = colorsys.rgb_to_hsv(*(c / 255 for c in col))
+        if s >= 0.2 and v >= 0.3:
+            return col
+    return colors[0]
+
+
+# ---------------------------------------------------------------- nomi veri delle skin
+
+NAMES_FILE = HERE / "skin_names.json"
+NAMES_API = "https://fortnite-api.com/v2/cosmetics/br/search?language=it&id=Character_"
+
+
+def load_names():
+    try:
+        return json.loads(NAMES_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def fetch_name(code):
+    """Nome vero della skin dal catalogo pubblico dei cosmetici; {} se non esiste, None se la rete non va."""
+    try:
+        req = urllib.request.Request(NAMES_API + urllib.parse.quote(code), headers={"User-Agent": "skinbot"})
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = (json.loads(resp.read().decode("utf-8")).get("data") or {})
+    except urllib.error.HTTPError as exc:
+        return {} if exc.code == 404 else None
+    except (OSError, ValueError):
+        return None
+    return {"name": data.get("name") or "", "set": (data.get("set") or {}).get("value") or ""}
+
+
+def resolve_names(codes):
+    """Aggiorna skin_names.json per i codici non ancora cercati. Ritorna la tabella completa."""
+    names = load_names()
+    changed = False
+    for code in codes:
+        if code in names:
+            continue
+        found = fetch_name(code)
+        if found is not None:
+            names[code] = found
+            changed = True
+    if changed:
+        try:
+            NAMES_FILE.write_text(json.dumps(names, indent=1, ensure_ascii=False), encoding="utf-8")
+        except OSError:
+            pass
+    return names
+
+
+def display_name(code, names=None):
+    """Nome da mostrare: quello vero se noto, altrimenti quello dello stile base o del set."""
+    names = load_names() if names is None else names
+    own = (names.get(code) or {}).get("name")
+    if own:
+        return own
+    parts = code.split("_")
+    for cut in range(len(parts) - 1, 0, -1):          # "SpruceBark_Bob" -> stile di "Crash Bandicoot"
+        base = (names.get("_".join(parts[:cut])) or {}).get("name")
+        if base:
+            return f"{base} ({' '.join(parts[cut:])})"
+    for other, info in names.items():                 # nessuno stile base: almeno il set dei "fratelli"
+        if info and info.get("set") and other.split("_")[0] == parts[0]:
+            return f"{code.replace('_', ' ')} - {info['set']}"
+    return code.replace("_", " ")
+
+
 def linear(rgb):
     def chan(c):
         c /= 255
@@ -469,7 +563,7 @@ def apply_theme(ue, colors):
     if not ue.exists(SKY_MI):                     # mappa senza cielo tingibile: si ricolora solo la rampa
         ue.call(T_ASSET, "save_assets", asset_paths=[WALL_MI])
         return False
-    ue.call(T_MI, "set_vector_parameter", instance=ref(SKY_MI), name="Tinta", value=sky_tint(colors[0]))
+    ue.call(T_MI, "set_vector_parameter", instance=ref(SKY_MI), name="Tinta", value=sky_tint(sky_source(colors)))
     for name, value in SKY_SCALARS:
         ue.call(T_MI, "set_scalar_parameter", instance=ref(SKY_MI), name=name, value=value)
     ue.call(T_ASSET, "save_assets", asset_paths=[WALL_MI, SKY_MI])
@@ -527,7 +621,7 @@ def run_skin(code, args):
         raise BotError(f"Skin '{code}' non trovata. Esportate: {', '.join(sorted(skins))}")
     code, models = match[0], skins[match[0]]
     parts = part_textures(code)
-    log(f"Skin: {code}   ({len(models)} mesh, {len(parts)} pezzi con texture)")
+    log(f"Skin: {display_name(code)} [{code}]   ({len(models)} mesh, {len(parts)} pezzi con texture)")
     if not has_body(models):
         log("  Attenzione: questa variante non ha il corpo, la skin uscira' incompleta.")
 

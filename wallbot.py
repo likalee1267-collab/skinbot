@@ -235,6 +235,87 @@ def palette_from_weights(colors):
     return out[:3]
 
 
+def palette_tones(colors, limit=5):
+    """Le tinte vivaci piu' presenti in una lista [r, g, b, peso], come (tinta, saturazione, valore)."""
+    bins = 36
+    vivid = []
+    for r, g, b, w in colors:
+        h, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+        if s > 0.25 and v > 0.18:
+            vivid.append((h, s, v, w))
+    score = [0.0] * bins
+    for h, s, v, w in vivid:
+        score[int(h * bins) % bins] += w * (0.35 + s)
+    smooth = [score[i] + 0.5 * (score[i - 1] + score[(i + 1) % bins]) for i in range(bins)]
+    top = max(smooth) if smooth else 0
+    picked = []
+    for i in sorted(range(bins), key=lambda i: -smooth[i]):
+        if len(picked) == limit or smooth[i] <= 0 or smooth[i] < 0.03 * top:
+            break
+        if any(min(abs(i - j), bins - abs(i - j)) < 3 for j, _ in picked):
+            continue
+        near = [(h, s, v, w) for h, s, v, w in vivid
+                if min(abs(int(h * bins) % bins - i), bins - abs(int(h * bins) % bins - i)) <= 1]
+        wsum = sum(w for *_, w in near) or 1.0
+        x = sum(math.cos(2 * math.pi * h) * w for h, s, v, w in near)
+        y = sum(math.sin(2 * math.pi * h) * w for h, s, v, w in near)
+        picked.append((i, ((math.atan2(y, x) / (2 * math.pi)) % 1.0,
+                           sum(s * w for h, s, v, w in near) / wsum, sum(v * w for h, s, v, w in near) / wsum)))
+    return [tone for _, tone in picked]
+
+
+def palette_variants(colors):
+    """Stili di colore per la stessa skin: [(nome, [base, A, B]), ...], il primo e' quello automatico.
+
+    Tutti usano solo tinte prese dalla skin: cambiano i ruoli (quale colore fa da fondo), la
+    luminosita' (pastello, scuro) o il fondo (bianco, nero) con le tinte della skin come macchie.
+    """
+    out = [("Automatico", palette_from_weights(colors))]
+    tones = palette_tones(colors)
+    if not tones:
+        return out
+
+    def bright(t):
+        return hsv(t[0], max(0.6, min(t[1], 0.9)), 1.0)
+
+    def deep(t):
+        return hsv(t[0], max(0.75, t[1]), 0.6)
+
+    def soft(t):
+        return hsv(t[0], 0.38, 1.0)
+
+    first = tones[0]
+    second = tones[1] if len(tones) > 1 else (first[0] + 0.5, 0.8, 1.0)
+    third = tones[2] if len(tones) > 2 else (first[0] + 0.08, 0.8, 1.0)
+    out.append(("Invertito", [bright(second), deep(first), bright(third)]))
+    out.append(("Accento", [bright(third), deep(second), bright(first)]))
+    if len(tones) > 3:
+        fifth = tones[4] if len(tones) > 4 else second
+        out.append(("Tinte nascoste", [bright(tones[3]), deep(fifth), bright(first)]))
+    out.append(("Pastello", [soft(first), soft(second), soft(third)]))
+    out.append(("Scuro", [hsv(first[0], 0.85, 0.42), (16, 16, 22), bright(second)]))
+    out.append(("Fondo bianco", [(244, 244, 248), bright(first), bright(second)]))
+    out.append(("Fondo nero", [(24, 24, 30), bright(first), bright(second)]))
+    seen, unique = set(), []
+    for name, cols in out:                        # via i doppioni (skin con poche tinte)
+        key = tuple((c[0] // 24, c[1] // 24, c[2] // 24) for c in cols)
+        if key not in seen:
+            seen.add(key)
+            unique.append((name, [tuple(c) for c in cols]))
+    return unique
+
+
+def texture_weights(paths):
+    """[r, g, b, peso] dai pixel delle texture colore: ripiego quando manca la misura sulla superficie."""
+    counts = Counter()
+    for f in paths:
+        im = Image.open(f).convert("RGBA").resize((96, 96), Image.BOX)
+        for r, g, b, a in im.get_flattened_data() if hasattr(im, "get_flattened_data") else im.getdata():
+            if a > 128:
+                counts[(r >> 3, g >> 3, b >> 3)] += 1
+    return [(r * 8 + 4, g * 8 + 4, b * 8 + 4, n) for (r, g, b), n in counts.items()]
+
+
 def skin_palette(paths):
     """Palette (base, A, B) dalle texture colore di una skin (file o cartelle con *_D.png).
 

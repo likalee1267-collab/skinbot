@@ -18,7 +18,7 @@ import wallbot as wb
 BG, PANEL, ROW, ROW_SEL = "#14151c", "#1d1f2a", "#1d1f2a", "#2c3040"
 TEXT, MUTED, OK, BAD = "#eef0f6", "#8b90a3", "#3ddc84", "#ff5c6c"
 FONT, FONT_B, FONT_H = ("Segoe UI", 10), ("Segoe UI Semibold", 10), ("Segoe UI Semibold", 15)
-LAYOUTS = [("Come adesso", None), ("Original", "original"), ("V2", "v2"), ("V3", "v3"), ("Casuale", "random")]
+LAYOUTS = [("Come adesso", None), ("Classico", "original"), ("Macchie", "v2"), ("Angoli", "v3"), ("Casuale", "random")]
 NAMES = ("Base", "Colore A", "Colore B")
 PREVIEW_W, PREVIEW_H = 520, 340
 
@@ -40,7 +40,7 @@ class App:
         self.root = root
         root.title("Skinbot")
         root.configure(bg=BG)
-        root.minsize(900, 600)
+        root.minsize(940, 800)
         self.lines = queue.Queue()
         self.busy = False
         self.manual = None                         # palette scelta a mano, altrimenti automatica
@@ -53,6 +53,11 @@ class App:
         self.watch_pending = None
         self.uefn_ok = None
         self.preparing = set()                     # skin di cui si sta preparando la foto
+        self.names = sb.load_names()               # codice -> nome vero della skin
+        self.name_lbls = {}
+        self.style_cache = {}                      # codice -> [(nome stile, colori)]
+        self.styles = []
+        self.style_idx = 0                         # -1 = colori scelti a mano
         self.pending_update = None                 # aggiornamento scaricato, da installare alla chiusura
         self.started = time.monotonic()
         self.checking_update = False
@@ -65,6 +70,7 @@ class App:
 
         self._build()
         self.refresh()
+        self.fetch_names()
         self.root.after(150, self.pump)
         self.root.after(2000, self.watch_tick)
         self.check_uefn()
@@ -131,8 +137,13 @@ class App:
         self.auto_btn = self._button(chips, "Colori della skin", self.auto_colors, small=True)
         self.auto_btn.pack(side="left", padx=(6, 0))
 
+        tk.Label(right, text="STILE DEI COLORI  -  stessa skin, video diverso: clicca per provarlo nell'anteprima",
+                 font=("Segoe UI", 9), bg=BG, fg=MUTED).pack(anchor="w", pady=(10, 4))
+        self.styles_box = tk.Frame(right, bg=BG)
+        self.styles_box.pack(anchor="w")
+
         lay = tk.Frame(right, bg=BG)
-        lay.pack(anchor="w", pady=(8, 4))
+        lay.pack(anchor="w", pady=(10, 4))
         tk.Label(lay, text="Disegno esagoni", font=FONT, bg=BG, fg=MUTED).pack(side="left", padx=(0, 10))
         self.layout_btns = []
         for label, value in LAYOUTS:
@@ -177,6 +188,7 @@ class App:
         for child in self.list_box.winfo_children():
             child.destroy()
         self.rows = {}
+        self.name_lbls = {}
         if not self.skins:
             tk.Label(self.list_box, text="Nessuna skin.\nEsporta da FortnitePorting\nsu Assets Folder.", font=FONT,
                      bg=PANEL, fg=MUTED, justify="left").pack(anchor="w", padx=8, pady=8)
@@ -186,9 +198,10 @@ class App:
             dots = tk.Canvas(row, width=46, height=30, bg=ROW, highlightthickness=0)
             dots.pack(side="left", padx=(8, 4))
             complete = sb.has_body(self.skins[code])
-            name = tk.Label(row, text=code.replace("_", " "), font=FONT_B if complete else FONT, bg=ROW,
+            name = tk.Label(row, text=sb.display_name(code, self.names), font=FONT_B if complete else FONT, bg=ROW,
                             fg=TEXT if complete else MUTED, anchor="w")
             name.pack(side="left", fill="x", expand=True)
+            self.name_lbls[code] = name
             if code == newest:
                 tk.Label(row, text="nuova", font=("Segoe UI", 8), bg=ROW, fg=OK).pack(side="right", padx=8)
             elif not complete:
@@ -225,6 +238,16 @@ class App:
                 self.lines.put(("prepared", code))
         threading.Thread(target=work, daemon=True).start()
 
+    def fetch_names(self):
+        codes = [c for c in self.skins if c not in self.names]
+        if not codes:
+            return
+
+        def work():
+            sb.resolve_names(codes)
+            self.lines.put(("names", None))
+        threading.Thread(target=work, daemon=True).start()
+
     def palette_of(self, code):
         if code not in self.palettes:
             self.palettes[code] = sb.choose_palette(code, sb.part_textures(code), None)
@@ -237,32 +260,66 @@ class App:
             row.config(bg=colour)
             for child in row.winfo_children():
                 child.config(bg=colour)
-        self.title.config(text=code.replace("_", " ") if code else "Nessuna skin esportata")
+        self.title.config(text=sb.display_name(code, self.names) if code else "Nessuna skin esportata")
         self.prepare(code)
-        if self.manual is None:
-            self.auto_colors()
-        else:
-            self.paint()
+        self.auto_colors()                         # skin nuova: si riparte dallo stile automatico
 
     # ------------------------------------------------------------ colori e anteprima
 
+    def styles_of(self, code):
+        if code not in self.style_cache:
+            self.style_cache[code] = sb.palette_styles(code, sb.part_textures(code))
+        return self.style_cache[code]
+
     def auto_colors(self):
-        self.manual = None
-        if self.code:
-            self.colors, origin = self.palette_of(self.code)
-            self.colors = list(self.colors)
-            note = "  Preparo la foto della skin..." if self.code in self.preparing else ""
-            self.origin.config(text=f"Palette {origin}.{note}")
-        else:
-            self.origin.config(text="Esporta una skin da FortnitePorting su Assets Folder.")
+        self.styles = self.styles_of(self.code) if self.code else [("Automatico", list(sb.DEFAULT_PALETTE))]
+        self.build_styles()
+        self.pick_style(0)
+
+    def describe(self):
+        if not self.code:
+            return "Esporta una skin da FortnitePorting su Assets Folder."
+        note = "   Preparo la foto della skin..." if self.code in self.preparing else ""
+        style = "colori scelti a mano" if self.style_idx < 0 else f"stile {self.styles[self.style_idx][0]}"
+        return f"{self.code}   -   {style}{note}"
+
+    def pick_style(self, i):
+        self.style_idx = i
+        name, cols = self.styles[i]
+        self.colors = list(cols)
+        self.manual = None if i == 0 else list(cols)       # lo stile automatico lo ricalcola il bot
+        self.origin.config(text=self.describe())
         self.paint()
+
+    def build_styles(self):
+        for child in self.styles_box.winfo_children():
+            child.destroy()
+        self.style_cards = []
+        for i, (name, cols) in enumerate(self.styles):
+            card = tk.Frame(self.styles_box, bg=PANEL, cursor="hand2", highlightthickness=2, highlightbackground=BG)
+            card.grid(row=i // 4, column=i % 4, padx=(0, 6), pady=(0, 6))
+            sw = tk.Canvas(card, width=118, height=30, bg=PANEL, highlightthickness=0)
+            sw.pack(padx=5, pady=(5, 2))
+            sw.create_rectangle(0, 0, 70, 30, fill=hexcol(cols[0]), outline="")      # fondo: il colore piu' grande
+            sw.create_rectangle(70, 0, 94, 30, fill=hexcol(cols[1]), outline="")
+            sw.create_rectangle(94, 0, 118, 30, fill=hexcol(cols[2]), outline="")
+            lbl = tk.Label(card, text=name, font=FONT, bg=PANEL, fg=TEXT)
+            lbl.pack(pady=(0, 4))
+            for widget in (card, sw, lbl):
+                widget.bind("<Button-1>", lambda e, i=i: self.pick_style(i))
+            self.style_cards.append(card)
+
+    def mark_style(self):
+        for i, card in enumerate(getattr(self, "style_cards", [])):
+            card.config(highlightbackground=TEXT if i == self.style_idx else BG)
 
     def pick(self, i):
         rgb, _ = colorchooser.askcolor(hexcol(self.colors[i]), title=NAMES[i], parent=self.root)
         if rgb:
             self.colors[i] = tuple(int(v) for v in rgb)
             self.manual = list(self.colors)
-            self.origin.config(text="Colori scelti a mano.")
+            self.style_idx = -1
+            self.origin.config(text=self.describe())
             self.paint()
 
     def set_layout(self, value):
@@ -283,12 +340,13 @@ class App:
             self.apply_btn.config(bg=hexcol(base), fg=readable_on(base), text="APPLICA A UEFN")
         self._layout_buttons()
         self._toggles()
+        self.mark_style()
         self.photo = ImageTk.PhotoImage(self.scene())
         self.preview.config(image=self.photo)
 
     def scene(self):
         """Anteprima: cielo tinto come in UEFN e una fila di pannelli con i colori scelti."""
-        sky = srgb(sb.sky_tint(self.colors[0]))
+        sky = srgb(sb.sky_tint(sb.sky_source(self.colors)))
         img = Image.new("RGB", (PREVIEW_W, PREVIEW_H))
         draw = ImageDraw.Draw(img)
         for y in range(PREVIEW_H):
@@ -440,6 +498,21 @@ class App:
                 updater.log("installazione alla chiusura fallita:", str(exc)[:160])
         self.root.destroy()
 
+    def refresh_styles(self):
+        """Ricalcola gli stili (colori misurati appena arrivati) tenendo la scelta dell'utente."""
+        if not self.code:
+            return
+        keep = self.style_idx
+        if keep < 0:                               # colori a mano: restano quelli
+            self.styles = self.styles_of(self.code)
+            self.build_styles()
+            self.origin.config(text=self.describe())
+            self.paint()
+            return
+        self.styles = self.styles_of(self.code)
+        self.build_styles()
+        self.pick_style(keep if keep < len(self.styles) else 0)
+
     def pump(self):
         try:
             while True:
@@ -447,21 +520,27 @@ class App:
                 if isinstance(line, tuple) and line[0] == "update_ready":
                     self.update_ready(line[1])
                     continue
+                if isinstance(line, tuple) and line[0] == "names":
+                    self.names = sb.load_names()
+                    for code, lbl in self.name_lbls.items():
+                        lbl.config(text=sb.display_name(code, self.names))
+                    if self.code:
+                        self.title.config(text=sb.display_name(self.code, self.names))
+                    continue
                 if isinstance(line, tuple):        # ("prepared", codice): foto e colori pronti
                     code = line[1]
                     self.preparing.discard(code)
                     self.palettes.pop(code, None)
+                    self.style_cache.pop(code, None)
                     self.draw_dots(code)
                     if self.code == code:
-                        self.auto_colors() if self.manual is None else self.paint()
+                        self.refresh_styles()
                     continue
                 if line is None:
                     self.busy = False
                     self.palettes.pop(self.code, None)   # ora c'e' la misura fatta dal convertitore
-                    if self.manual is None:
-                        self.auto_colors()
-                    else:
-                        self.paint()
+                    self.style_cache.pop(self.code, None)
+                    self.refresh_styles()
                     continue
                 tag = "err" if "ERRORE" in line else ("ok" if line.startswith("Fatto") else "")
                 self.text.config(state="normal")
@@ -482,7 +561,9 @@ class App:
                         sb.log("Nuovo export rilevato.")
                         self.manual = None
                         self.palettes.clear()
+                        self.style_cache.clear()
                         self.refresh()
+                        self.fetch_names()
                         self.apply(sb.latest_code(self.skins))
                     else:
                         self.watch_pending = stamp
