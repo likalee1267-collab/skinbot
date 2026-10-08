@@ -15,13 +15,13 @@ import skinbot as sb
 FOLDER = "WallBot/Cascate"
 WATERFALL_CLASS = "/CRG_Props/SetupAssets/Blueprints/CP_Waterfall_02b.CP_Waterfall_02b_C"
 SPOTS = [("Centro", 0), ("Sinistra", -5600), ("Destra", 5600)]
-# misure prese sulla mappa: con queste scale il velo d'acqua e' largo ~3800 e va da z 237000 a 223000
-FALL_X, FALL_Z, FALL_YAW = 145500, 237650, -90
-FALL_SCALE = {"x": 5.85, "y": 3.0, "z": 12.8}
-BADGE_X = 145500                                   # appena davanti al velo d'acqua (che sta a x 145700)
-BADGE_COLUMNS = (-950, 950)
-BADGE_ROWS = [235500 - i * 1650 for i in range(8)]
-BADGE_WIDTH = 1260                                 # larghezza dello stemma sulla cascata
+# misure prese sulla mappa: con queste scale il velo d'acqua e' largo ~4800 e va da z 237000 a 223000
+FALL_X, FALL_Z, FALL_YAW = 145500, 237650, 90    # a yaw 90 il lato bombato guarda la rampa
+FALL_SCALE = {"x": 7.4, "y": 3.0, "z": 12.8}
+BADGE_X = 144900                                   # appena davanti al velo d'acqua (che sta a x 145100)
+BADGE_COLUMNS = (-1150, 1150)
+BADGE_ROWS = [235300 - i * 1900 for i in range(7)]
+BADGE_WIDTH = 1750                                 # larghezza dello stemma sulla cascata
 RAMP_BOX = ((120500, -161500, 225000), (137000, -158000, 234500))
 
 

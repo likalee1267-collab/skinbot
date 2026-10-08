@@ -1,7 +1,7 @@
 {
- "version": "1.0.9",
+ "version": "1.0.10",
  "date": "2026-10-08",
- "notes": "Novita': Cascate XP. Un interruttore mette tre cascate con gli stemmi XP dietro le statue",
+ "notes": "Cascate XP: girate dal lato giusto, piu' larghe e vicine, stemmi piu' grandi",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,8 +20,8 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "c40de10135c8f8863ac02038c602f7166ef718d0e7a0be2f1e548ff45d7506c2",
-   "size": 158
+   "sha256": "c597b49f510c2a29e44c0504cf44db85992a012de7586f4a32ca6ba4c6ae4d66",
+   "size": 146
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
@@ -52,8 +52,8 @@
    "size": 14003
   },
   "cascate.py": {
-   "sha256": "980444eb5df8b1bd4ef516d9e3e981b0da4e8226eb0d2592b070cebd6584340e",
-   "size": 5204
+   "sha256": "a1cc0a5aa738c91829bca685bcc14752b63341366a61d0cec3b2ea0c278ec03a",
+   "size": 5250
   },
   "layouts/original.json": {
    "sha256": "1f931927c90a030544b2ea368a52942c73fc52bd214387309a990fca185f44b2",

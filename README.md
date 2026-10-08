@@ -1,7 +1,7 @@
 # Skinbot
 
-Canale di aggiornamento automatico di Skinbot. Versione 1.0.9 (2026-10-08).
+Canale di aggiornamento automatico di Skinbot. Versione 1.0.10 (2026-10-08).
 
-Novita': Cascate XP. Un interruttore mette tre cascate con gli stemmi XP dietro le statue
+Cascate XP: girate dal lato giusto, piu' larghe e vicine, stemmi piu' grandi
 
 Per installare: scarica ed esegui `Installa Skinbot.bat`.
