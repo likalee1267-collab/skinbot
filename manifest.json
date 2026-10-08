@@ -1,7 +1,7 @@
 {
- "version": "1.0.17",
+ "version": "1.0.18",
  "date": "2026-10-08",
- "notes": "Il tasto di pulizia ora tiene l'ultima skin esportata e cancella solo quelle vecchie",
+ "notes": "Skin da tingere (es. Yeddy): il pelo grigio prende un colore, con il tasto 'Colore della skin' per sceglierlo",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,20 +20,20 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "26f5665fda7d1591bde65c108134cc24ff0f65ae34f2caeacd92e0d1618f8008",
-   "size": 154
+   "sha256": "16e16fa334d154e0221fb342fd1479c026bf37be723c5b409a3234eba7d58b60",
+   "size": 179
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "a0b727adcb37b81471041820881c3fe4211a55078bcb5edbb58f7382f2cbebd6",
-   "size": 48445
+   "sha256": "710fc061bc839536b38a6c57af20d9df392542a0dd0f9036e386754a13ab7717",
+   "size": 51926
   },
   "skinbot_gui.py": {
-   "sha256": "9189b31c9c2eda9daac1c667e292973235601b05b660ce0aebc5a72e0857edc7",
-   "size": 31373
+   "sha256": "5267f44fecb2dc8637162cbc482627be1eeb0e8bc56182a326cf3e893169398f",
+   "size": 32578
   },
   "skinbot_setup.py": {
    "sha256": "69e5df1019222421ab2384d868c1381871a9b08b169accaf5ca95f9510336b1b",

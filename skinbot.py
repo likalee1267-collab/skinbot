@@ -345,6 +345,11 @@ def part_textures(code, borrow=True):
                 kinds["color"] = tinted
                 # in queste skin dentro la cupola di vetro c'e' uno spiritello azzurro: la cupola prende quel colore
                 parts_glass = glass_texture("T_WB_GlassSprite.png", (70, 205, 235))
+                continue
+            dyed = dye_texture(code, part, kinds["color"])
+            if dyed:
+                kinds["color"] = dyed
+                kinds.pop("emissive", None)        # in queste skin "_E" e' una maschera, non una luce
     if borrow and parts:                           # lenti degli occhiali: scure, non con la texture del corpo
         for part in ("Glass", "Lens"):
             parts.setdefault(part, {"color": parts_glass or glass_texture()})
@@ -354,6 +359,84 @@ def part_textures(code, borrow=True):
 # skin "a zone": l'export non ha i colori (sono parametri del gioco), solo una maschera delle zone.
 # Colori di ripiego scelti sulla skin vera (armatura azzurra, parti scure, dettagli chiari, gemme rosse).
 ZONE_COLORS = {"R": (74, 160, 214), "G": (184, 196, 208), "B": (43, 51, 64), "none": (22, 24, 29), "gem": (255, 58, 46)}
+
+
+# skin "da tingere": pelo o tessuto grigio che il gioco colora con un colore a scelta (es. Yeddy).
+DEFAULT_DYE = (255, 70, 200)
+SETTINGS = HERE / "settings.json"
+_DYE_ZONES = {}
+
+
+def load_settings():
+    try:
+        return json.loads(SETTINGS.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def skin_dye(code):
+    """Il colore scelto per una skin da tingere (di base rosa)."""
+    saved = load_settings().get("tinte", {}).get(code)
+    return tuple(saved) if saved else DEFAULT_DYE
+
+
+def set_skin_dye(code, rgb):
+    data = load_settings()
+    data.setdefault("tinte", {})[code] = [int(v) for v in rgb]
+    SETTINGS.write_text(json.dumps(data), encoding="utf-8")
+
+
+def dye_zone(color):
+    """La maschera "_FX" se la texture colore e' grigia nella zona che il gioco tinge; None altrimenti."""
+    stem = color.stem
+    if not stem.endswith("_D"):
+        return None
+    mask = color.with_name(stem[:-2] + "_FX.png")
+    if not mask.is_file():
+        return None
+    key = (str(color), color.stat().st_mtime, mask.stat().st_mtime)
+    if key not in _DYE_ZONES:
+        import numpy as np
+        from PIL import Image
+        small = (256, 256)
+        data = np.asarray(Image.open(color).convert("RGB").resize(small), dtype=np.float32) / 255
+        fx = np.asarray(Image.open(mask).convert("RGB").resize(small), dtype=np.float32) / 255
+        zone = (fx[..., 0] > 0.5) & (fx[..., 1] < 0.5) & (fx[..., 2] < 0.5)
+        grey = bool(zone.mean() > 0.2 and (data.max(-1) - data.min(-1))[zone].mean() < 0.06)
+        _DYE_ZONES.clear() if len(_DYE_ZONES) > 200 else None
+        _DYE_ZONES[key] = mask if grey else None
+    return _DYE_ZONES[key]
+
+
+def dye_texture(code, part, color):
+    """Texture colore con la zona grigia tinta del colore scelto per la skin. None se non e' una skin da tingere."""
+    mask = dye_zone(color)
+    if not mask:
+        return None
+    dye = skin_dye(code)
+    out = HERE / "skins" / code / ("T_%s_%s_Dye_%02x%02x%02x.png" % (code, part, *dye))
+    if out.is_file() and out.stat().st_mtime >= max(color.stat().st_mtime, mask.stat().st_mtime):
+        return out
+    import numpy as np
+    from PIL import Image
+    size = (1024, 1024)
+    data = np.asarray(Image.open(color).convert("RGB").resize(size), dtype=np.float32) / 255
+    fx = np.asarray(Image.open(mask).convert("RGB").resize(size), dtype=np.float32) / 255
+    zone = np.clip(fx[..., 0] - fx[..., 1] - fx[..., 2], 0, 1)[..., None]
+    lum = data.mean(-1, keepdims=True)
+    top = max(float(np.percentile(lum[zone[..., 0] > 0.5], 95)), 0.05)
+    dyed = np.array(dye, dtype=np.float32) / 255 * np.clip(lum / top, 0, 1.08)
+    rgb = data * (1 - zone) + dyed * zone
+    out.parent.mkdir(parents=True, exist_ok=True)
+    for stale in out.parent.glob(f"T_{code}_{part}_Dye_*.png"):
+        stale.unlink()
+    Image.fromarray((np.clip(rgb, 0, 1) * 255).astype("uint8"), "RGB").save(out)
+    return out
+
+
+def can_dye(code):
+    """True se la skin ha una zona che il gioco tinge (il programma mostra il tasto per scegliere il colore)."""
+    return any("_Dye_" in kinds["color"].name for kinds in part_textures(code).values())
 
 
 def tint_texture(code, part, color):

@@ -153,6 +153,9 @@ class App:
             self.chips.append(chip)
         self.auto_btn = self._button(chips, "Colori della skin", self.auto_colors, small=True)
         self.auto_btn.pack(side="left", padx=(6, 0))
+        # solo per le skin che il gioco tinge (pelo grigio nell'export): il colore lo scegli qui
+        self.dye_btn = tk.Label(chips, text="Colore della skin", font=FONT_B, padx=12, pady=6, cursor="hand2")
+        self.dye_btn.bind("<Button-1>", lambda e: self.pick_dye())
 
         tk.Label(right, text="STILE DEI COLORI  -  stessa skin, video diverso: clicca per provarlo nell'anteprima",
                  font=("Segoe UI", 9), bg=BG, fg=MUTED).pack(anchor="w", pady=(10, 4))
@@ -287,6 +290,29 @@ class App:
         self.title.config(text=sb.display_name(code, self.names) if code else "Nessuna skin esportata")
         self.prepare(code)
         self.auto_colors()                         # skin nuova: si riparte dallo stile automatico
+        self.show_dye()
+
+    def show_dye(self):
+        if self.code and sb.can_dye(self.code):
+            dye = sb.skin_dye(self.code)
+            self.dye_btn.config(bg=hexcol(dye), fg="#000000" if sum(dye) > 380 else "#ffffff")
+            self.dye_btn.pack(side="left", padx=(8, 0))
+        else:
+            self.dye_btn.pack_forget()
+
+    def pick_dye(self):
+        """Cambia il colore di una skin da tingere e rifa' la foto."""
+        if self.busy or not self.code or self.code in self.preparing:
+            return
+        rgb, _ = colorchooser.askcolor(color=hexcol(sb.skin_dye(self.code)), title="Colore della skin")
+        if not rgb:
+            return
+        sb.set_skin_dye(self.code, rgb)
+        self.palettes.pop(self.code, None)
+        self.style_cache.pop(self.code, None)
+        self.show_dye()
+        self.prepare(self.code)
+        self.origin.config(text=self.describe())
 
     # ------------------------------------------------------------ colori e anteprima
 
