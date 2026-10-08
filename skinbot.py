@@ -314,6 +314,11 @@ def part_textures(code, borrow=True):
         for part, kinds in part_textures(base, borrow=False).items():
             if part != "Body":
                 parts.setdefault(part, kinds)
+        # pezzi che questo stile non ha (es. la texture della testa): valgono quelli di uno stile fratello
+        for other in sorted(c for c in raw_skins() if c.lower().startswith(base.lower() + "_") and c.lower() != code.lower()):
+            for part, kinds in part_textures(other, borrow=False).items():
+                if not part.startswith("Body"):
+                    parts.setdefault(part, kinds)
     return parts
 
 
