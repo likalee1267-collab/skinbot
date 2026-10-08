@@ -319,7 +319,19 @@ def part_textures(code, borrow=True):
             for part, kinds in part_textures(other, borrow=False).items():
                 if not part.startswith("Body"):
                     parts.setdefault(part, kinds)
+    if borrow and parts:                           # lenti degli occhiali: scure, non con la texture del corpo
+        for part in ("Glass", "Lens"):
+            parts.setdefault(part, {"color": glass_texture()})
     return parts
+
+
+def glass_texture():
+    from PIL import Image
+    png = HERE / "uefn" / "T_WB_Glass.png"
+    if not png.is_file():
+        png.parent.mkdir(exist_ok=True)
+        Image.new("RGB", (8, 8), (14, 16, 24)).save(png)
+    return png
 
 
 def eye_texture(code):

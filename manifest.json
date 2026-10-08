@@ -1,7 +1,7 @@
 {
- "version": "1.0.11",
+ "version": "1.0.12",
  "date": "2026-10-08",
- "notes": "Stili senza la texture del viso: il bot la prende dallo stile gemello invece di usare quella del corpo",
+ "notes": "Occhiali: lenti scure invece della texture del corpo",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,16 +20,16 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "2920b0995f48af98cc0cc1886e9ad274742208e28c8e10776a8c3a2b687fec6c",
-   "size": 172
+   "sha256": "443bc3d7f25bdec5073c2e9bf8c3c5ebf4b3793eed88034bbf4a88f6e3021ebe",
+   "size": 122
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "a8e9957af9d0b3f49597f1b0d52f613dc0dd26645300450e20b970c56d3ad91d",
-   "size": 39687
+   "sha256": "bbd21a3782a6faa03dc14750a7f0b2e65f012ac32d7a60d690d61509b5727206",
+   "size": 40142
   },
   "skinbot_gui.py": {
    "sha256": "42019b6c8a25e36f7fdeea5ebf0ddfb1839eade9d79e2e7645e63a7be8d74ae6",

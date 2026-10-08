@@ -1,5 +1,5 @@
 {
-  "version": "1.0.11",
+  "version": "1.0.12",
   "date": "2026-10-08",
-  "notes": "Stili senza la texture del viso: il bot la prende dallo stile gemello invece di usare quella del corpo"
+  "notes": "Occhiali: lenti scure invece della texture del corpo"
 }
