@@ -1,7 +1,7 @@
 # Skinbot
 
-Canale di aggiornamento automatico di Skinbot. Versione 1.0.12 (2026-10-08).
+Canale di aggiornamento automatico di Skinbot. Versione 1.0.13 (2026-10-08).
 
-Occhiali: lenti scure invece della texture del corpo
+Skin a pezzi (es. PixieParts): braccia esportate a parte riattaccate, riconosciute le texture _D_TA e _D2
 
 Per installare: scarica ed esegui `Installa Skinbot.bat`.

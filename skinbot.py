@@ -195,6 +195,11 @@ def exported_skins():
     skins = {}
     for code, files in raw.items():
         files = list(files)
+        if has_body(files):                        # braccia e simili esportati a parte: "<codice>Arms"
+            for other, extra in raw.items():
+                if (other.lower().startswith(code.lower()) and len(other) > len(code)
+                        and other[len(code)] != "_" and not has_body(extra)):
+                    files += extra
         base = base_code(code, raw)
         if base and has_body(files) and not has_head(files):
             files += [p for p in raw[base] if not is_body(p)]
@@ -241,6 +246,21 @@ def latest_code(skins):
 PART_WORDS = ["FaceAcc", "Head", "Face", "Hat", "Hair", "Body"]
 
 
+def texture_kind(tokens):
+    """(tipo, priorita', pezzi del nome) di una texture; None se non e' colore, normale o emissiva.
+
+    Oltre ai suffissi classici valgono le varianti "_D_TA" e "_D2" di alcune skin.
+    """
+    tokens = list(tokens)
+    if len(tokens) > 1 and tokens[-1] == "TA":
+        tokens.pop()
+    last = re.sub(r"(?<=[A-Za-z])\d$", "", tokens[-1])
+    for kind, names in SUFFIXES.items():
+        if last in names:
+            return kind, names.index(last) + (0.5 if last != tokens[-1] else 0), tokens[:-1]
+    return None
+
+
 def texture_folders(code):
     """Le cartelle Textures accanto ai modelli di questa skin."""
     folders = []
@@ -258,12 +278,12 @@ def folder_textures(code):
     for folder in texture_folders(code):
         for tex in sorted(folder.rglob("*.png")):
             tokens = re.sub(r"^T_", "", tex.stem, flags=re.I).split("_")
-            for kind, names in SUFFIXES.items():
-                if tokens[-1] not in names:
-                    continue
-                words = [t.lower() for t in tokens[:-1]]
+            found = texture_kind(tokens)
+            if found:
+                kind, order, rest = found
+                words = [t.lower() for t in rest]
                 part = next((w for w in PART_WORDS if w.lower() in words), "Body")
-                rank = (names.index(tokens[-1]), -tex.stat().st_size)     # a pari suffisso vale la piu' grande
+                rank = (order, -tex.stat().st_size)                       # a pari suffisso vale la piu' grande
                 slot = best.setdefault(part, {})
                 if kind not in slot or rank < slot[kind][0]:
                     slot[kind] = (rank, tex)
@@ -297,14 +317,12 @@ def part_textures(code, borrow=True):
             continue
         if skin_code(tex.parent.parent.name).lower() != code.lower():
             continue                               # texture di un'altra variante della stessa skin
-        tokens = match.group(1).split("_")
-        for kind, names in SUFFIXES.items():
-            if tokens[-1] in names:
-                part = "_".join(tokens[:-1]) or "Body"
-                rank = names.index(tokens[-1])
-                slot = best.setdefault(part, {})
-                if kind not in slot or rank < slot[kind][0]:
-                    slot[kind] = (rank, tex)
+        found = texture_kind(match.group(1).split("_"))
+        if found:
+            kind, rank, rest = found
+            slot = best.setdefault("_".join(rest) or "Body", {})
+            if kind not in slot or rank < slot[kind][0]:
+                slot[kind] = (rank, tex)
     parts = {part: {kind: tex for kind, (_, tex) in kinds.items()} for part, kinds in best.items()}
     parts = {part: kinds for part, kinds in parts.items() if "color" in kinds}
     if not parts:                                  # texture con un nome fuori schema (es. Spider-Man)
