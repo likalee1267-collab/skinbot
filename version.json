@@ -1,5 +1,5 @@
 {
-  "version": "1.0.5",
+  "version": "1.0.6",
   "date": "2026-10-08",
-  "notes": "Muri: collegamento piu' robusto in Prepara questa mappa e avviso se i colori non possono cambiare"
+  "notes": "Muri: il bot li collega da solo quando applichi una skin, e li trova anche se sulla mappa hanno nomi diversi"
 }

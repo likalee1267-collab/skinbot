@@ -611,6 +611,27 @@ def place_statues(ue, mesh):
 
 # ---------------------------------------------------------------- flusso
 
+def link_map(ue):
+    """Se nessun muro usa ancora il materiale del bot, collega muri e cielo da solo (come 'Prepara questa mappa')."""
+    try:
+        if ue.call(T_ASSET, "get_referencers", asset_path=WALL_MI):
+            return
+    except RuntimeError:
+        return
+    import skinbot_setup as st
+    st.sb.configure(ROOT.strip("/").split("/")[0])
+    log("  I muri non sono ancora collegati al bot: li collego adesso")
+    try:
+        changed, already, note = st.connect_walls(ue)
+        log(f"  Muri, pavimenti e rampe collegati: {changed} nuovi, {already} gia' collegati" + (f" ({note})" if note else ""))
+        if not changed and not already:
+            log("  ATTENZIONE: non trovo i muri della rampa, quindi i colori non cambiano. "
+                f"Manda il file {LOG_FILE.name} a chi sviluppa il bot.")
+        log("  Cielo:", st.connect_sky(ue))
+    except RuntimeError as exc:
+        log("  ATTENZIONE: collegamento dei muri non riuscito:", str(exc)[:200])
+
+
 def run_skin(code, args):
     skins = exported_skins()
     if not skins:
@@ -655,14 +676,8 @@ def run_skin(code, args):
     log("  Importata in UEFN:", mesh)
     if args.layout:
         log("  Disegno esagoni:", apply_layout(ue, args.layout))
+    link_map(ue)
     log("  Rampa e cielo ricolorati" if apply_theme(ue, colors) else "  Rampa ricolorata (cielo non collegato)")
-    try:                                          # i colori si vedono solo se qualcosa usa il materiale del bot
-        users = ue.call(T_ASSET, "get_referencers", asset_path=WALL_MI) or []
-        if not users:
-            log("  ATTENZIONE: nessun muro usa il materiale del bot, quindi a vista non cambia nulla. "
-                "Premi 'Prepara questa mappa' e riprova.")
-    except RuntimeError:
-        pass
     if not args.no_statues:
         count, what = place_statues(ue, mesh)
         log(f"  Statue {what}: {count}")

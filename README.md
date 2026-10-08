@@ -1,7 +1,7 @@
 # Skinbot
 
-Canale di aggiornamento automatico di Skinbot. Versione 1.0.5 (2026-10-08).
+Canale di aggiornamento automatico di Skinbot. Versione 1.0.6 (2026-10-08).
 
-Muri: collegamento piu' robusto in Prepara questa mappa e avviso se i colori non possono cambiare
+Muri: il bot li collega da solo quando applichi una skin, e li trova anche se sulla mappa hanno nomi diversi
 
 Per installare: scarica ed esegui `Installa Skinbot.bat`.

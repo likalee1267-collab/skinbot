@@ -149,47 +149,84 @@ def in_ramp(desc):
         return False
 
 
+def wall_kind(desc):
+    """Che pezzo di rampa e' (indice in WALL_LABELS), dal nome della classe o dall'etichetta; None se altro."""
+    cls = ((desc.get("class") or {}).get("refPath") or "").replace("_", " ").lower()
+    label = (desc.get("label") or "").lower()
+    for i, name in enumerate(WALL_LABELS):
+        if name.lower() in cls or name.lower() in label:
+            return i
+    return None
+
+
+def ramp_actors(ue):
+    """Muri, pavimenti e rampe dentro la zona della rampa, cercati sia per nome sia per posizione."""
+    lo, hi = RAMP_BOX
+    box = {"min": dict(zip("xyz", lo)), "max": dict(zip("xyz", hi)), "isValid": True}
+    found, stats = {}, []
+    for what, query in [(label, {"name": label}) for label in WALL_LABELS] + [("zona rampa", {"bounds": box})]:
+        try:
+            descs = ue.call(sb.T_SCENE, "find_actors", collision_channels=[], **query) or []
+        except RuntimeError as exc:
+            stats.append(f"{what}: errore {str(exc)[:80]}")
+            continue
+        keep = [d for d in descs if in_ramp(d) and wall_kind(d) is not None]
+        stats.append(f"{what}: {len(descs)} trovati, {len(keep)} buoni")
+        for d in keep:
+            found.setdefault(d["actorPath"], d)
+    return found, stats
+
+
 def connect_walls(ue):
     """Muri, pavimenti e rampe della rampa passano al materiale ricolorabile.
 
-    Il materiale da sostituire e' quello rosa originale; se sulla mappa ha un altro nome, vale
-    quello usato dalla maggior parte dei muri della rampa. Ritorna (collegati, gia' collegati, nota).
+    Il materiale da sostituire e' quello rosa originale; se sulla mappa ha un altro nome, per ogni
+    tipo di pezzo vale quello usato dalla maggior parte. Ritorna (collegati, gia' collegati, nota).
     """
-    actors, seen = [], set()
-    for label in WALL_LABELS:
-        for desc in ue.call(sb.T_SCENE, "find_actors", collision_channels=[], name=label) or []:
-            path = desc["actorPath"]
-            if path in seen or not in_ramp(desc):
-                continue
-            seen.add(path)
-            comp = {"refPath": path + ".StaticMeshComponent0"}
-            try:
-                mats = json.loads(ue.call(sb.T_OBJ, "get_properties", instance=comp,
-                                          properties=["overrideMaterials"])).get("overrideMaterials") or []
-            except RuntimeError:
-                continue
-            actors.append((path, comp, mats, label))
+    found, stats = ramp_actors(ue)
+    sb.log("  Ricerca muri:", " | ".join(stats))
     wall_mi = sb.ref(sb.WALL_MI)["refPath"]
+    actors, bare = [], 0
+    for path, desc in found.items():
+        comp = {"refPath": path + ".StaticMeshComponent0"}
+        try:
+            mats = json.loads(ue.call(sb.T_OBJ, "get_properties", instance=comp,
+                                      properties=["overrideMaterials"])).get("overrideMaterials") or []
+        except RuntimeError:
+            continue
+        refs = {m.get("refPath", "") for m in mats if m} - {""}
+        if not refs:
+            bare += 1
+        actors.append((path, comp, mats, refs, wall_kind(desc)))
     counts, already = {}, 0
-    for path, comp, mats, label in actors:
-        refs = {m.get("refPath", "") for m in mats if m}
-        if wall_mi in refs:
-            already += 1
-        for r in refs - {wall_mi, ""}:
+    for path, comp, mats, refs, kind in actors:
+        already += wall_mi in refs
+        for r in refs - {wall_mi}:
             counts[r] = counts.get(r, 0) + 1
     sb.log("  Attori nella zona della rampa:", len(actors), "| materiali trovati:",
-           ", ".join(f"{r.split('.')[-1]} x{n}" for r, n in sorted(counts.items(), key=lambda kv: -kv[1])[:6]) or "nessuno")
+           ", ".join(f"{r.split('.')[-1]} x{n}" for r, n in sorted(counts.items(), key=lambda kv: -kv[1])[:6]) or "nessuno",
+           f"| senza materiale proprio: {bare}" if bare else "")
     targets = {r for r in counts if OLD_WALL_MATERIAL in r}
     note = ""
-    if not targets and counts and not already:
-        # nome diverso su questa mappa: il materiale dei muri e' quello di gran lunga piu' usato
-        top, n = max(counts.items(), key=lambda kv: kv[1])
-        if n >= 0.5 * len(actors):
-            targets = {top}
-            note = f"materiale riconosciuto dall'uso: {top.split('.')[-1]}"
+    if not targets:
+        # nome diverso su questa mappa: per ogni tipo di pezzo, il materiale di gran lunga piu' usato
+        for kind in range(len(WALL_LABELS)):
+            group = [refs for _, _, _, refs, k in actors if k == kind]
+            if not group or any(wall_mi in refs for refs in group):
+                continue
+            tally = {}
+            for refs in group:
+                for r in refs:
+                    tally[r] = tally.get(r, 0) + 1
+            if tally:
+                top, n = max(tally.items(), key=lambda kv: kv[1])
+                if n >= 0.5 * len(group):
+                    targets.add(top)
+        if targets:
+            note = "materiale riconosciuto dall'uso: " + ", ".join(sorted(t.split(".")[-1] for t in targets))
     changed = 0
-    for path, comp, mats, label in actors:
-        if not any(m and m.get("refPath", "") in targets for m in mats):
+    for path, comp, mats, refs, kind in actors:
+        if not refs & targets:
             continue
         new = [sb.ref(sb.WALL_MI) if (m and m.get("refPath", "") in targets) else m for m in mats]
         props(ue, comp, overrideMaterials=new)
