@@ -1,7 +1,7 @@
 {
- "version": "1.0.14",
+ "version": "1.0.15",
  "date": "2026-10-08",
- "notes": "Skin a zone (Guardian/PixieParts): colorate dalla maschera delle zone con i colori della skin vera",
+ "notes": "Nuovo tasto 'Pulisci tutte le skin': toglie statue e skin da UEFN e gli export dal PC, con conferma",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,20 +20,20 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "da16dda9653ff396214b4524fb8e0305cbad9aaf7de68826e95f4359d209e2c1",
-   "size": 168
+   "sha256": "a5a4bb2ed7716eeee61772040816dbefc6c38311c75a4ea356d2e9dd9b2f046d",
+   "size": 169
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "b10f843dde9c08bfdab0a8f3882d649f56bdcfec8266d8c69b13036e42910207",
-   "size": 43337
+   "sha256": "e46e8d684624fefbe50eae47416424516e62e41e3b7b406919b1ae1b9a8fd184",
+   "size": 46406
   },
   "skinbot_gui.py": {
-   "sha256": "42019b6c8a25e36f7fdeea5ebf0ddfb1839eade9d79e2e7645e63a7be8d74ae6",
-   "size": 27731
+   "sha256": "ba984f40f4fb7d91375cae28ae7bc1d3ae92af6b8527dd304f7ac2edefb79a34",
+   "size": 29955
   },
   "skinbot_setup.py": {
    "sha256": "69e5df1019222421ab2384d868c1381871a9b08b169accaf5ca95f9510336b1b",

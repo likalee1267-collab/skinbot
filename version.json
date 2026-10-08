@@ -1,5 +1,5 @@
 {
-  "version": "1.0.14",
+  "version": "1.0.15",
   "date": "2026-10-08",
-  "notes": "Skin a zone (Guardian/PixieParts): colorate dalla maschera delle zone con i colori della skin vera"
+  "notes": "Nuovo tasto 'Pulisci tutte le skin': toglie statue e skin da UEFN e gli export dal PC, con conferma"
 }

@@ -882,6 +882,76 @@ def safe_run(code, args):
     return False
 
 
+def clean_plan():
+    """Cosa cancellerebbe 'Pulisci tutte le skin', per la conferma: (skin esportate, file, MB)."""
+    files = [f for root in (FP_ASSETS, HERE / "skins") if root.is_dir() for f in root.rglob("*") if f.is_file()]
+    return len(raw_skins()), len(files), round(sum(f.stat().st_size for f in files) / 1e6)
+
+
+def clean_all():
+    """Toglie tutte le skin: statue e asset importati in UEFN, export di FortnitePorting e foto sul PC.
+
+    Muri, cielo, materiali del bot e cascate restano. Alla prossima skin le statue vengono ricreate.
+    """
+    import shutil
+    try:
+        ue = Uefn()
+        level = ue.call(T_SCENE, "get_current_level") or ""
+        configure(level.strip("/").split("/")[0])
+    except BotError:
+        ue = None
+        log("UEFN e' chiuso: pulisco solo il PC. Le skin gia' importate nel progetto restano li'.")
+    if ue:
+        try:
+            statues = ue.call(T_SCENE, "get_actors_in_folder", folder_path=STATUE_FOLDER, recursive=False) or []
+        except RuntimeError:
+            statues = []
+        labels = {spot[0] for spot in STATUE_SPOTS}
+        gone = 0
+        for desc in statues:
+            if desc.get("label") in labels:          # solo le statue messe dal bot
+                ue.call(T_SCENE, "remove_from_scene", actor={"refPath": desc["actorPath"]})
+                gone += 1
+        log(f"  Statue tolte dalla mappa: {gone}")
+        folder = f"{ROOT}/Skins"
+        try:
+            found = ue.call(T_ASSET, "find_assets", folder_path=folder, recursive=True) or []
+            if found:
+                ok = ue.call(T_ASSET, "delete", path=folder)
+                log(f"  Asset delle skin cancellati dal progetto: {len(found)}" if ok
+                    else "  ATTENZIONE: UEFN non ha cancellato la cartella delle skin (qualcosa le usa ancora).")
+            else:
+                log("  Nel progetto non c'erano skin importate.")
+        except RuntimeError as exc:
+            log("  ATTENZIONE: skin non cancellate dal progetto:", str(exc)[:200])
+    removed = 0
+    for root in (FP_ASSETS, HERE / "skins"):
+        if not root.is_dir():
+            continue
+        for child in list(root.iterdir()):
+            try:
+                shutil.rmtree(child) if child.is_dir() else child.unlink()
+                removed += 1
+            except OSError as exc:
+                log("  Non riesco a cancellare", child.name + ":", str(exc)[:120])
+    log("  Export di FortnitePorting e foto delle skin cancellati dal PC." if removed else "  Sul PC non c'era niente da cancellare.")
+    log("Pulizia finita: esporta una skin nuova per ricominciare.")
+
+
+def safe_clean():
+    try:
+        clean_all()
+        return True
+    except Exception as exc:
+        log("ERRORE imprevisto durante la pulizia:", f"{type(exc).__name__}: {str(exc)[:300]}")
+        try:
+            with LOG_FILE.open("a", encoding="utf-8") as fh:
+                fh.write(traceback.format_exc() + "\n")
+        except OSError:
+            pass
+    return False
+
+
 def safe_setup():
     import skinbot_setup
     try:

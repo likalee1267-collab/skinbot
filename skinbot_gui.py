@@ -8,7 +8,7 @@ import threading
 import time
 import tkinter as tk
 import urllib.request
-from tkinter import colorchooser
+from tkinter import colorchooser, messagebox
 
 from PIL import Image, ImageDraw, ImageTk
 
@@ -113,7 +113,10 @@ class App:
         tk.Label(left, text="Skin esportate", font=FONT_B, bg=PANEL, fg=TEXT).pack(anchor="w", padx=12, pady=(12, 6))
         self.list_box = tk.Frame(left, bg=PANEL)
         self.list_box.pack(fill="both", expand=True, padx=6)
-        self._button(left, "Prepara questa mappa", self.setup_map, small=True).pack(side="bottom", fill="x", padx=10, pady=(0, 10))
+        clean = self._button(left, "Pulisci tutte le skin", self.clean_all, small=True)
+        clean.config(fg="#ff8a80")
+        clean.pack(side="bottom", fill="x", padx=10, pady=(0, 10))
+        self._button(left, "Prepara questa mappa", self.setup_map, small=True).pack(side="bottom", fill="x", padx=10, pady=(0, 6))
         self._button(left, "Aggiorna elenco", self.refresh, small=True).pack(side="bottom", fill="x", padx=10, pady=6)
 
         right = tk.Frame(body, bg=BG)
@@ -457,6 +460,29 @@ class App:
                 self.lines.put(None)
         threading.Thread(target=work, daemon=True).start()
 
+    def clean_all(self):
+        """Toglie tutte le skin da UEFN e dal PC, dopo una conferma."""
+        if self.busy or self.preparing:
+            sb.log("Sto ancora lavorando: riprova tra qualche secondo.")
+            return
+        skins, files, mb = sb.clean_plan()
+        if not messagebox.askyesno("Pulisci tutte le skin", (
+                f"Sto per cancellare TUTTE le skin:\n\n"
+                f"  -  dalla mappa: le tre statue e le skin importate nel progetto UEFN\n"
+                f"  -  dal PC: {skins} skin esportate da FortnitePorting e le loro foto ({files} file, {mb} MB)\n\n"
+                f"Muri, cielo e cascate restano. Non si puo' annullare.\n\nContinuo?"), icon="warning", default="no"):
+            return
+        self.busy = True
+        self.apply_btn.config(text="PULISCO...", bg=ROW_SEL, fg=MUTED)
+
+        def work():
+            try:
+                sb.safe_clean()
+            finally:
+                self.lines.put(("cleaned", None))
+                self.lines.put(None)
+        threading.Thread(target=work, daemon=True).start()
+
     # ------------------------------------------------------------ aggiornamenti
 
     def show_banner(self, text, color=TEXT, button=None, command=None):
@@ -545,6 +571,13 @@ class App:
                 line = self.lines.get_nowait()
                 if isinstance(line, tuple) and line[0] == "update_ready":
                     self.update_ready(line[1])
+                    continue
+                if isinstance(line, tuple) and line[0] == "cleaned":
+                    self.palettes.clear()
+                    self.style_cache.clear()
+                    self.manual = None
+                    self.code = None
+                    self.refresh()
                     continue
                 if isinstance(line, tuple) and line[0] == "names":
                     self.names = sb.load_names()

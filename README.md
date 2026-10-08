@@ -1,7 +1,7 @@
 # Skinbot
 
-Canale di aggiornamento automatico di Skinbot. Versione 1.0.14 (2026-10-08).
+Canale di aggiornamento automatico di Skinbot. Versione 1.0.15 (2026-10-08).
 
-Skin a zone (Guardian/PixieParts): colorate dalla maschera delle zone con i colori della skin vera
+Nuovo tasto 'Pulisci tutte le skin': toglie statue e skin da UEFN e gli export dal PC, con conferma
 
 Per installare: scarica ed esegui `Installa Skinbot.bat`.
