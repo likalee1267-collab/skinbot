@@ -184,11 +184,37 @@ def ready():
     return update
 
 
+def smoke_test(staging):
+    """Prova ad avviare la versione scaricata con il Python di questo PC, prima di installarla.
+
+    Se non si importa (libreria mancante, Python troppo vecchio) installarla lascerebbe l'app
+    morta e senza piu' modo di aggiornarsi: meglio restare sulla versione che funziona.
+    """
+    exe = Path(sys.executable)
+    console = exe.with_name("python.exe")
+    env = dict(os.environ, PYTHONPATH=str(staging), PYTHONDONTWRITEBYTECODE="1")
+    try:
+        run = subprocess.run([str(console if console.is_file() else exe), "-c", "import skinbot_gui"],
+                             cwd=str(staging), env=env, capture_output=True, text=True, errors="replace",
+                             timeout=120, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise UpdateError(f"prova della nuova versione non riuscita ({exc})")
+    if run.returncode != 0:
+        detail = (run.stderr.strip().splitlines() or ["errore sconosciuto"])[-1]
+        log("la nuova versione non parte su questo PC:", detail[:200])
+        raise UpdateError(f"la nuova versione non parte su questo PC ({detail[:120]})")
+
+
 def apply(staging=STAGING):
     """Installa i file scaricati. In caso di errore rimette quelli vecchi e rilancia l'eccezione."""
     update = ready() if staging == STAGING else Update(read_json(staging / "manifest.json", {}), "")
     if update is None:
         raise UpdateError("nessun aggiornamento integro da installare")
+    try:
+        smoke_test(staging)
+    except UpdateError:
+        shutil.rmtree(staging, ignore_errors=True)   # non riprovare a ogni chiusura la stessa versione rotta
+        raise
     if BACKUP.exists():
         shutil.rmtree(BACKUP, ignore_errors=True)
     BACKUP.mkdir(parents=True)
