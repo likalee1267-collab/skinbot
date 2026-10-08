@@ -1,7 +1,7 @@
 {
- "version": "1.0.6",
+ "version": "1.0.7",
  "date": "2026-10-08",
- "notes": "Muri: il bot li collega da solo quando applichi una skin, e li trova anche se sulla mappa hanno nomi diversi",
+ "notes": "Statue: se UEFN importa la skin girata di 90 gradi il bot se ne accorge e la raddrizza verso la rampa",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,16 +20,16 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "3e19a5a94b4d1173725563381389b52d76d84a3de28aa178af9068db9620f515",
-   "size": 177
+   "sha256": "b6c6e5e5caf226af563ce193ab83d0ccfdc27a74c2dad8f85e79dedbb8585b6a",
+   "size": 170
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "9e5c01db3cbe0e58ad3f32a931a3987be91d4d313f24516d3ca9798997096c91",
-   "size": 34092
+   "sha256": "541597098d3921805117c935ac9d5d6d2e4c3bef279ebc0dbb01194f9c2fddd7",
+   "size": 35750
   },
   "skinbot_gui.py": {
    "sha256": "22669eefedde1f0b14055e75656064c241727c5b5b2c55175ce515e0df4941fa",

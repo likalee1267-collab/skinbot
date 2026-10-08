@@ -1,7 +1,7 @@
 # Skinbot
 
-Canale di aggiornamento automatico di Skinbot. Versione 1.0.6 (2026-10-08).
+Canale di aggiornamento automatico di Skinbot. Versione 1.0.7 (2026-10-08).
 
-Muri: il bot li collega da solo quando applichi una skin, e li trova anche se sulla mappa hanno nomi diversi
+Statue: se UEFN importa la skin girata di 90 gradi il bot se ne accorge e la raddrizza verso la rampa
 
 Per installare: scarica ed esegui `Installa Skinbot.bat`.

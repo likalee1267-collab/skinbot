@@ -1,5 +1,5 @@
 {
-  "version": "1.0.6",
+  "version": "1.0.7",
   "date": "2026-10-08",
-  "notes": "Muri: il bot li collega da solo quando applichi una skin, e li trova anche se sulla mappa hanno nomi diversi"
+  "notes": "Statue: se UEFN importa la skin girata di 90 gradi il bot se ne accorge e la raddrizza verso la rampa"
 }

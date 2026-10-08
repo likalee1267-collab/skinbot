@@ -570,14 +570,33 @@ def apply_theme(ue, colors):
     return True
 
 
-def spot_transform(spot):
+def spot_transform(spot, turn=0):
     _, x, y, scale, yaw = spot
     return {"location": {"x": x, "y": y, "z": STATUE_Z},
-            "rotation": {"pitch": 0, "yaw": yaw, "roll": 0},
+            "rotation": {"pitch": 0, "yaw": yaw + turn, "roll": 0},
             "scale": {"x": scale, "y": scale, "z": scale}}
 
 
-def place_statues(ue, mesh):
+def mesh_turn(ue, mesh, size_m):
+    """Gradi da aggiungere perche' la statua guardi la rampa.
+
+    Su alcuni PC UEFN importa l'FBX girato di 90 gradi (la skin guarda +X invece di +Y): lo si vede
+    da dove finisce la larghezza delle spalle, che in Blender e' la misura X.
+    """
+    try:
+        b = ue.call(T_MESH, "get_bounds", mesh=ref(mesh)) or {}
+        ex, ey = b["max"]["x"] - b["min"]["x"], b["max"]["y"] - b["min"]["y"]
+        width, depth = size_m[0], size_m[1]
+    except (RuntimeError, KeyError, TypeError, IndexError):
+        return 0
+    if abs(width - depth) < 0.1 * max(width, depth) or abs(ex - ey) < 0.1 * max(ex, ey):
+        return 0                                   # skin larga quanto profonda: non si capisce, resta com'e'
+    return 0 if (ex > ey) == (width > depth) else 90
+
+
+def place_statues(ue, mesh, size_m=None):
+    turn = mesh_turn(ue, mesh, size_m)
+    note = " (mesh importata girata: corretta)" if turn else ""
     try:
         existing = ue.call(T_SCENE, "get_actors_in_folder", folder_path=STATUE_FOLDER, recursive=False) or []
     except RuntimeError:                           # mappa nuova: la cartella delle statue non esiste ancora
@@ -589,24 +608,34 @@ def place_statues(ue, mesh):
             actor = {"refPath": desc["actorPath"]}
             ue.call(T_OBJ, "set_properties", instance={"refPath": desc["actorPath"] + ".StaticMeshComponent0"},
                     values=json.dumps({"staticMesh": ref(mesh)}))
-            # statue create da una versione vecchia del bot: nate senza rotazione (guardano di lato)
+            # la rotazione giusta dipende dalla mesh; posizione e scala restano quelle scelte a mano.
+            # Si corregge solo se la statua ha ancora una rotazione messa dal bot (0, base, base+90).
             spot = spots.get(desc.get("label", ""))
             if spot:
-                rot = (ue.call(T_ACTOR, "get_actor_transform", actor=actor) or {}).get("rotation") or {}
-                if abs(rot.get("yaw", 0)) < 1:
-                    ue.call(T_ACTOR, "set_actor_transform", actor=actor, xform=spot_transform(spot))
-                    fixed += 1
+                try:
+                    now = ue.call(T_ACTOR, "get_actor_transform", actor=actor) or {}
+                    yaw = (now.get("rotation") or {}).get("yaw", 0) % 360
+                    want = (spot[4] + turn) % 360
+                    ours = any(abs(yaw - v % 360) < 1 for v in (0, spot[4], spot[4] + 90))
+                    if ours and abs(yaw - want) >= 1:
+                        xform = spot_transform(spot, turn)
+                        if abs(yaw) >= 1 and now.get("location") and now.get("scale"):
+                            xform["location"], xform["scale"] = now["location"], now["scale"]
+                        ue.call(T_ACTOR, "set_actor_transform", actor=actor, xform=xform)
+                        fixed += 1
+                except (RuntimeError, AttributeError, TypeError):
+                    pass
             ue.call(T_SCENE, "save_actor", actor=actor)
-        return len(existing), "aggiornate" + (f" ({fixed} raddrizzate)" if fixed else "")
+        return len(existing), "aggiornate" + (f" ({fixed} raddrizzate)" if fixed else "") + note
     for spot in STATUE_SPOTS:
-        xform = spot_transform(spot)
+        xform = spot_transform(spot, turn)
         actor = ue.call(T_SCENE, "add_to_scene_from_asset", asset_path=mesh, name=spot[0], xform=xform)
         # alla creazione UEFN puo' ignorare rotazione e scala: le imposto di nuovo, tutte insieme
         ue.call(T_ACTOR, "set_actor_transform", actor=actor, xform=xform)
         ue.call(T_ACTOR, "set_label", actor=actor, label=spot[0])
         ue.call(T_SCENE, "set_actor_folder", actor=actor, folder_path=STATUE_FOLDER)
         ue.call(T_SCENE, "save_actor", actor=actor)
-    return len(STATUE_SPOTS), "create"
+    return len(STATUE_SPOTS), "create" + note
 
 
 # ---------------------------------------------------------------- flusso
@@ -679,7 +708,7 @@ def run_skin(code, args):
     link_map(ue)
     log("  Rampa e cielo ricolorati" if apply_theme(ue, colors) else "  Rampa ricolorata (cielo non collegato)")
     if not args.no_statues:
-        count, what = place_statues(ue, mesh)
+        count, what = place_statues(ue, mesh, info.get("size_m"))
         log(f"  Statue {what}: {count}")
     log(f"Fatto e salvato in {time.time() - started:.0f} secondi.")
 
