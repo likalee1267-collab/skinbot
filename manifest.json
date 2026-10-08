@@ -1,7 +1,7 @@
 {
- "version": "1.0.0",
+ "version": "1.0.1",
  "date": "2026-10-08",
- "notes": "Prima versione con aggiornamento automatico",
+ "notes": "Aggiornamento piu' sicuro: la nuova versione viene provata prima di installarla",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,8 +20,8 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "28f7cf61984c9f74b106b8b0b31f080ac10e0fc3462a0f57201c612e851f35b2",
-   "size": 112
+   "sha256": "b37e625a1d8b05e6f43450ec4455cbe5e58e94aab7e3d75d6fe98cd262315488",
+   "size": 148
   },
   "updater.py": {
    "sha256": "fe2da8ab96650412a4b2182a3d8d71f7ddba81a4976e0c00533b58c1bbe62db2",

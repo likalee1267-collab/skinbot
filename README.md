@@ -1,7 +1,7 @@
 # Skinbot
 
-Canale di aggiornamento automatico di Skinbot. Versione 1.0.0 (2026-10-08).
+Canale di aggiornamento automatico di Skinbot. Versione 1.0.1 (2026-10-08).
 
-Prima versione con aggiornamento automatico
+Aggiornamento piu' sicuro: la nuova versione viene provata prima di installarla
 
 Per installare: scarica ed esegui `Installa Skinbot.bat`.
