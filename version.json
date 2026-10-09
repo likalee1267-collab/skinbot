@@ -1,5 +1,5 @@
 {
-  "version": "1.0.19",
-  "date": "2026-10-08",
-  "notes": "Storico: il bot ricorda le skin fatte e gli stili usati, segna gli stili gia' usati e propone il primo libero"
+  "version": "1.0.20",
+  "date": "2026-10-09",
+  "notes": "Correzione: il bot non colora piu' da solo di rosa le skin bianche/grigie. Il colore si mette solo dal tasto 'Colora la skin...'"
 }

@@ -349,6 +349,7 @@ def part_textures(code, borrow=True):
             dyed = dye_texture(code, part, kinds["color"])
             if dyed:
                 kinds["color"] = dyed
+            if dyed or dye_zone(kinds["color"]):
                 kinds.pop("emissive", None)        # in queste skin "_E" e' una maschera, non una luce
     if borrow and parts:                           # lenti degli occhiali: scure, non con la texture del corpo
         for part in ("Glass", "Lens"):
@@ -375,14 +376,21 @@ def load_settings():
 
 
 def skin_dye(code):
-    """Il colore scelto per una skin da tingere (di base rosa)."""
+    """Il colore scelto per una skin da tingere; None finche' non lo si sceglie (la skin resta com'e' esportata).
+
+    Il bot non tinge mai da solo: una tuta bianca e un pelo "da colorare" nei file sono uguali.
+    """
     saved = load_settings().get("tinte", {}).get(code)
-    return tuple(saved) if saved else DEFAULT_DYE
+    return tuple(saved) if saved else None
 
 
 def set_skin_dye(code, rgb):
+    """Salva il colore scelto; con rgb None toglie la tinta."""
     data = load_settings()
-    data.setdefault("tinte", {})[code] = [int(v) for v in rgb]
+    if rgb is None:
+        data.get("tinte", {}).pop(code, None)
+    else:
+        data.setdefault("tinte", {})[code] = [int(v) for v in rgb]
     SETTINGS.write_text(json.dumps(data), encoding="utf-8")
 
 
@@ -414,6 +422,8 @@ def dye_texture(code, part, color):
     if not mask:
         return None
     dye = skin_dye(code)
+    if not dye:
+        return None
     out = HERE / "skins" / code / ("T_%s_%s_Dye_%02x%02x%02x.png" % (code, part, *dye))
     if out.is_file() and out.stat().st_mtime >= max(color.stat().st_mtime, mask.stat().st_mtime):
         return out
@@ -436,7 +446,7 @@ def dye_texture(code, part, color):
 
 def can_dye(code):
     """True se la skin ha una zona che il gioco tinge (il programma mostra il tasto per scegliere il colore)."""
-    return any("_Dye_" in kinds["color"].name for kinds in part_textures(code).values())
+    return any("_Dye_" in kinds["color"].name or dye_zone(kinds["color"]) for kinds in part_textures(code).values())
 
 
 def tint_texture(code, part, color):

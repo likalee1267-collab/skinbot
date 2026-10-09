@@ -1,7 +1,7 @@
 {
- "version": "1.0.19",
- "date": "2026-10-08",
- "notes": "Storico: il bot ricorda le skin fatte e gli stili usati, segna gli stili gia' usati e propone il primo libero",
+ "version": "1.0.20",
+ "date": "2026-10-09",
+ "notes": "Correzione: il bot non colora piu' da solo di rosa le skin bianche/grigie. Il colore si mette solo dal tasto 'Colora la skin...'",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,20 +20,20 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "81f97e4783575d0d9f8138660dcd6c78134db072062958119d0a9a89e112b77a",
-   "size": 179
+   "sha256": "59b44dd42b564a82f27661620dab9961c6f737dedeaee38e82748775ba550de2",
+   "size": 198
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "651380cda4ac4e9122b7f6c7188f151de534e082e6a925184fd358ab81bf0b3b",
-   "size": 53928
+   "sha256": "20042e8a5b8ac244879e7615d02224000912537c4d79ca4d96ccec1ef0b9285b",
+   "size": 54340
   },
   "skinbot_gui.py": {
-   "sha256": "5d541b820ffaba7bd869883b66f7f872f51f86b921dadf3cb3577365099d7135",
-   "size": 33611
+   "sha256": "d772b0fcc99aa3401baadb07654e61b884db3f3319dbcdc52bad1d5d8cdf7664",
+   "size": 35047
   },
   "skinbot_setup.py": {
    "sha256": "69e5df1019222421ab2384d868c1381871a9b08b169accaf5ca95f9510336b1b",

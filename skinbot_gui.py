@@ -311,19 +311,31 @@ class App:
     def show_dye(self):
         if self.code and sb.can_dye(self.code):
             dye = sb.skin_dye(self.code)
-            self.dye_btn.config(bg=hexcol(dye), fg="#000000" if sum(dye) > 380 else "#ffffff")
+            if dye:
+                self.dye_btn.config(text="Colore della skin", bg=hexcol(dye), fg=readable_on(dye))
+            else:                                  # nessuna tinta: la skin e' come esportata
+                self.dye_btn.config(text="Colora la skin...", bg=ROW_SEL, fg=TEXT)
             self.dye_btn.pack(side="left", padx=(8, 0))
         else:
             self.dye_btn.pack_forget()
 
     def pick_dye(self):
-        """Cambia il colore di una skin da tingere e rifa' la foto."""
+        """Sceglie (o toglie) il colore di una skin che il gioco tinge, e rifa' la foto."""
         if self.busy or not self.code or self.code in self.preparing:
             return
-        rgb, _ = colorchooser.askcolor(color=hexcol(sb.skin_dye(self.code)), title="Colore della skin")
-        if not rgb:
-            return
-        sb.set_skin_dye(self.code, rgb)
+        current = sb.skin_dye(self.code)
+        if current:
+            answer = messagebox.askyesnocancel("Colore della skin", "Vuoi cambiare il colore?\n\n"
+                                               "Si' = scegli un altro colore\nNo = togli il colore (skin come esportata)")
+            if answer is None:
+                return
+            if answer is False:
+                sb.set_skin_dye(self.code, None)
+        if not current or answer:
+            rgb, _ = colorchooser.askcolor(color=hexcol(current or sb.DEFAULT_DYE), title="Colore della skin")
+            if not rgb:
+                return
+            sb.set_skin_dye(self.code, rgb)
         self.palettes.pop(self.code, None)
         self.style_cache.pop(self.code, None)
         self.show_dye()
