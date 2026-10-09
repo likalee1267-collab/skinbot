@@ -1,7 +1,7 @@
 {
- "version": "1.0.20",
+ "version": "1.0.21",
  "date": "2026-10-09",
- "notes": "Correzione: il bot non colora piu' da solo di rosa le skin bianche/grigie. Il colore si mette solo dal tasto 'Colora la skin...'",
+ "notes": "Texture scambiate tra testa e corpo su alcune skin (es. Morcello): corretto il convertitore",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,16 +20,16 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "59b44dd42b564a82f27661620dab9961c6f737dedeaee38e82748775ba550de2",
-   "size": 198
+   "sha256": "6d7df119210d59e19883d364e9a003d632b5aff7dbbe8076b63b60f91d0d83b5",
+   "size": 161
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "20042e8a5b8ac244879e7615d02224000912537c4d79ca4d96ccec1ef0b9285b",
-   "size": 54340
+   "sha256": "d36c8f380a9e175c5e688d89485bbb76f60ff24e5f80a63ad4a2a5ad7eb5e128",
+   "size": 53119
   },
   "skinbot_gui.py": {
    "sha256": "d772b0fcc99aa3401baadb07654e61b884db3f3319dbcdc52bad1d5d8cdf7664",
@@ -40,8 +40,8 @@
    "size": 14801
   },
   "skin_convert.py": {
-   "sha256": "24f2ac9e6c1a324925d37f6ea4b2627e4a25a0dcf8094c19b1479b43c48daee5",
-   "size": 12435
+   "sha256": "7a552140c46bee691e8b551cfdde58b0b27736563fbc265dd04b7ca73b52f425",
+   "size": 13332
   },
   "wallbot.py": {
    "sha256": "d19cd92238e75b4ebe647dc624b7cbbf105c12617d464ce10fda3731bb7b464f",

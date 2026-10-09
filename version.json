@@ -1,5 +1,5 @@
 {
-  "version": "1.0.20",
+  "version": "1.0.21",
   "date": "2026-10-09",
-  "notes": "Correzione: il bot non colora piu' da solo di rosa le skin bianche/grigie. Il colore si mette solo dal tasto 'Colora la skin...'"
+  "notes": "Texture scambiate tra testa e corpo su alcune skin (es. Morcello): corretto il convertitore"
 }

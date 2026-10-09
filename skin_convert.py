@@ -256,6 +256,22 @@ def main():
 
     bpy.ops.object.select_all(action="DESELECT")
     mesh.select_set(True)
+    # materiali senza facce (es. la "testa vuota" di certe skin): UEFN li salta e scala di un posto
+    # tutti gli altri, cosi' il corpo finisce con la texture della testa. Via prima di esportare.
+    # Vale anche per i materiali con sole facce schiacciate (area zero), che UEFN butta all'import.
+    import bmesh
+    area = {}
+    for poly in mesh.data.polygons:
+        area[poly.material_index] = area.get(poly.material_index, 0.0) + poly.area
+    flat = {i for i, a in area.items() if a < max(1e-4, sum(area.values()) * 1e-4)}   # meno di 1 cm2: non si vede
+    if flat:
+        bm = bmesh.new()
+        bm.from_mesh(mesh.data)
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.material_index in flat], context="FACES")
+        bm.to_mesh(mesh.data)
+        bm.free()
+    bpy.context.view_layer.objects.active = mesh
+    bpy.ops.object.material_slot_remove_unused()
     bpy.ops.export_scene.fbx(
         filepath=str(out), use_selection=True, object_types={"MESH"},
         mesh_smooth_type="FACE", add_leaf_bones=False, bake_anim=False,

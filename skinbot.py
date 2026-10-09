@@ -47,7 +47,7 @@ def configure(project):
 
 
 configure("redgotyfinal")
-CONVERTER_VERSION = 3            # da alzare quando skin_convert.py cambia la mesh prodotta
+CONVERTER_VERSION = 6            # da alzare quando skin_convert.py cambia la mesh prodotta
 STATUE_FOLDER = "WallBot/Skins"
 RAMP_CENTER_Y = -159744
 # (label, x, y, scala, yaw) - usati solo se le tre statue non esistono ancora
