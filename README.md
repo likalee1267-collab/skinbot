@@ -1,7 +1,7 @@
 # Skinbot
 
-Canale di aggiornamento automatico di Skinbot. Versione 1.0.21 (2026-10-09).
+Canale di aggiornamento automatico di Skinbot. Versione 1.0.22 (2026-10-10).
 
-Texture scambiate tra testa e corpo su alcune skin (es. Morcello): corretto il convertitore
+Mani staccate dalle braccia su alcune skin (es. Chica): la posa ora muove anche le ossa gemelle del braccio
 
 Per installare: scarica ed esegui `Installa Skinbot.bat`.

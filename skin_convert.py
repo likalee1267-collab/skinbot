@@ -61,6 +61,13 @@ def rotate_bone(arm, name, down_deg, forward_deg):
         pivot = Matrix.Translation(head) @ best[1] @ Matrix.Translation(-head)
         bone.matrix = pivot @ bone.matrix
         bpy.context.view_layer.update()
+        # alcune skin (es. gli animatronic) hanno il braccio pesato su ossa gemelle "retarget", che non
+        # sono figlie dell'osso vero: senza la stessa rotazione il braccio resta fermo e la mano si stacca
+        limb, side = name.rsplit("_", 1)
+        twin = arm.pose.bones.get(f"{limb}_retarget_{'rt' if side == 'r' else 'lf'}")
+        if twin is not None:
+            twin.matrix = pivot @ twin.matrix
+            bpy.context.view_layer.update()
     return True
 
 

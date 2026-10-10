@@ -1,7 +1,7 @@
 {
- "version": "1.0.21",
- "date": "2026-10-09",
- "notes": "Texture scambiate tra testa e corpo su alcune skin (es. Morcello): corretto il convertitore",
+ "version": "1.0.22",
+ "date": "2026-10-10",
+ "notes": "Mani staccate dalle braccia su alcune skin (es. Chica): la posa ora muove anche le ossa gemelle del braccio",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,15 +20,15 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "6d7df119210d59e19883d364e9a003d632b5aff7dbbe8076b63b60f91d0d83b5",
-   "size": 161
+   "sha256": "f5a6da88dfaa71299d64a19efa3f692a7756a15db620bda30f8f18434e59f601",
+   "size": 177
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "d36c8f380a9e175c5e688d89485bbb76f60ff24e5f80a63ad4a2a5ad7eb5e128",
+   "sha256": "701f4b240f5125243983cc444eb5879dfd233fdc769fb33b52173fb3f3971313",
    "size": 53119
   },
   "skinbot_gui.py": {
@@ -40,8 +40,8 @@
    "size": 14801
   },
   "skin_convert.py": {
-   "sha256": "7a552140c46bee691e8b551cfdde58b0b27736563fbc265dd04b7ca73b52f425",
-   "size": 13332
+   "sha256": "a7552a384e59d3d0a7f9f9350ec99a203d37fda5fd5f52986e123db53e935fbd",
+   "size": 13796
   },
   "wallbot.py": {
    "sha256": "d19cd92238e75b4ebe647dc624b7cbbf105c12617d464ce10fda3731bb7b464f",

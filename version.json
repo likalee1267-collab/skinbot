@@ -1,5 +1,5 @@
 {
-  "version": "1.0.21",
-  "date": "2026-10-09",
-  "notes": "Texture scambiate tra testa e corpo su alcune skin (es. Morcello): corretto il convertitore"
+  "version": "1.0.22",
+  "date": "2026-10-10",
+  "notes": "Mani staccate dalle braccia su alcune skin (es. Chica): la posa ora muove anche le ossa gemelle del braccio"
 }
