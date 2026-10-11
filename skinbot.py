@@ -847,6 +847,13 @@ def import_skin(ue, code, fbx, parts, eye_tex, borrowed=False):
     folder = f"{ROOT}/Skins/Skin_{code}"
     mesh = f"{folder}/SM_{code}_v{CONVERTER_VERSION}" + ("_full" if borrowed else "")
     item = lambda path: [disk(path), Path(path).stem]
+    if not ue.exists(mesh):
+        ue.call(T_MESH, "import_file", folder_path=folder, asset_name=mesh.rsplit("/", 1)[-1], source_file=disk(fbx),
+                import_materials=False, import_textures=False, combine_meshes=True)
+        try:                                       # statue giganti: mai un ostacolo per i giocatori
+            ue.call(T_MESH, "remove_collisions", mesh=ref(mesh))
+        except RuntimeError as exc:
+            log("  (collisione non rimossa:", str(exc)[:80] + ")")
     try:
         out = ue.script(IMPORT_BODY, code=code, folder=folder, mesh=mesh, fbx=disk(fbx),
                         parts={part: {kind: item(path) for kind, path in kinds.items()} for part, kinds in parts.items()},
@@ -856,12 +863,6 @@ def import_skin(ue, code, fbx, parts, eye_tex, borrowed=False):
     except RuntimeError as exc:
         log("  (importazione veloce non riuscita, procedo passo passo:", str(exc)[:160].replace("\n", " ") + ")")
         return import_skin_slow(ue, code, fbx, parts, eye_tex, borrowed)
-    if out.get("new_mesh"):
-        try:                                       # statue giganti: mai un ostacolo per i giocatori
-            ue.call(T_MESH, "remove_collisions", mesh=ref(mesh))
-            ue.call(T_ASSET, "save_assets", asset_paths=[mesh])
-        except RuntimeError as exc:
-            log("  (collisione non rimossa:", str(exc)[:80] + ")")
     return mesh
 
 

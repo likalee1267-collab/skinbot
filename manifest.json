@@ -1,7 +1,7 @@
 {
- "version": "1.0.27",
+ "version": "1.0.28",
  "date": "2026-10-11",
- "notes": "Skin in bianco e nero (es. Ghostface): 7 stili di colore in piu' con accenti diversi",
+ "notes": "Importazione di una skin nuova ancora piu' rapida: un solo salvataggio invece di due",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,7 +20,7 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "2a3ecc2d03e76b0d57cbd94a963084520d0697353f71cb700fd48aed815e0d58",
+   "sha256": "cedd63941c3096a49b92079b24e5b2311c2c55a62a3a077e1c0f86f292b5ae99",
    "size": 154
   },
   "updater.py": {
@@ -28,8 +28,8 @@
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "7a65d05a1c7b00a7b33cbe55adcd250a3f5f1a59cd857b8648915f2f419806ac",
-   "size": 66690
+   "sha256": "7581c7654cd46dd9f4bc7f60fdb90b32f9206021e8bdb5f87442047cd26698a0",
+   "size": 66829
   },
   "skinbot_gui.py": {
    "sha256": "d8636cc5c7cd450b8c777351416a11a330e94374e8d4e18c59f71c7e96d4dac1",
