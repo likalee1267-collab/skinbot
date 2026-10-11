@@ -1,5 +1,5 @@
 {
-  "version": "1.0.22",
-  "date": "2026-10-10",
-  "notes": "Mani staccate dalle braccia su alcune skin (es. Chica): la posa ora muove anche le ossa gemelle del braccio"
+  "version": "1.0.23",
+  "date": "2026-10-11",
+  "notes": "Molto piu' veloce: l'importazione in UEFN passa da quasi 2 minuti a circa 20 secondi"
 }

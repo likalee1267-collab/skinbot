@@ -1,7 +1,7 @@
 # Skinbot
 
-Canale di aggiornamento automatico di Skinbot. Versione 1.0.22 (2026-10-10).
+Canale di aggiornamento automatico di Skinbot. Versione 1.0.23 (2026-10-11).
 
-Mani staccate dalle braccia su alcune skin (es. Chica): la posa ora muove anche le ossa gemelle del braccio
+Molto piu' veloce: l'importazione in UEFN passa da quasi 2 minuti a circa 20 secondi
 
 Per installare: scarica ed esegui `Installa Skinbot.bat`.

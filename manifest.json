@@ -1,7 +1,7 @@
 {
- "version": "1.0.22",
- "date": "2026-10-10",
- "notes": "Mani staccate dalle braccia su alcune skin (es. Chica): la posa ora muove anche le ossa gemelle del braccio",
+ "version": "1.0.23",
+ "date": "2026-10-11",
+ "notes": "Molto piu' veloce: l'importazione in UEFN passa da quasi 2 minuti a circa 20 secondi",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,16 +20,16 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "f5a6da88dfaa71299d64a19efa3f692a7756a15db620bda30f8f18434e59f601",
-   "size": 177
+   "sha256": "a4796bc6aceee39320ee2bf96e89859149bb47c9d3c2484f760d451b49d7b2f2",
+   "size": 154
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "701f4b240f5125243983cc444eb5879dfd233fdc769fb33b52173fb3f3971313",
-   "size": 53119
+   "sha256": "2ea89d3498caffcebe6d37faf9a5b0545485d50f859d526291867bf497e8362a",
+   "size": 55787
   },
   "skinbot_gui.py": {
    "sha256": "d772b0fcc99aa3401baadb07654e61b884db3f3319dbcdc52bad1d5d8cdf7664",

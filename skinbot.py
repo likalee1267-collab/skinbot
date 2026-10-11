@@ -16,6 +16,7 @@ ricava la palette dai colori reali della skin, ricolora rampa e cielo, mette la 
 tre statue e salva. Ogni esecuzione viene registrata in skinbot.log.
 """
 import argparse
+import contextlib
 import colorsys
 import json
 import random
@@ -944,7 +945,42 @@ def history_lines():
     return lines or ["Lo storico e' vuoto: si riempie da solo ogni volta che applichi una skin."]
 
 
+T_EDITOR = "EditorToolset.EditorAppToolset"
+DIGEST_CVAR = "Valkyrie.VerseAssetDigestAutoUpdateEnabled"
+
+
+@contextlib.contextmanager
+def quiet_digest():
+    """Sospende l'aggiornamento automatico dell'indice Verse degli asset mentre il bot lavora.
+
+    A ogni asset creato UEFN rigenera l'indice di tutto il progetto (~10 secondi l'uno): con una
+    skin sono 6-8 asset, cioe' piu' di un minuto di attesa. Alla fine torna com'era; l'indice si
+    rigenera da solo alla prossima modifica o al prossimo 'Compila Verse'.
+    """
+    try:
+        ue = Uefn()
+        old = ue.call(T_EDITOR, "GetCVarValue", name=DIGEST_CVAR)
+        ue.call(T_EDITOR, "SetCVarValue", name=DIGEST_CVAR, value="false")
+    except (BotError, RuntimeError):
+        yield                                      # UEFN chiuso o versione senza questa opzione: si va piano
+        return
+    try:
+        yield
+    finally:
+        try:
+            Uefn().call(T_EDITOR, "SetCVarValue", name=DIGEST_CVAR, value="false" if old is False else "true")
+        except (BotError, RuntimeError):
+            log("  Nota: non sono riuscito a riattivare l'indice Verse automatico; torna normale riavviando UEFN.")
+
+
 def run_skin(code, args):
+    if args.dry_run:
+        return _run_skin(code, args)
+    with quiet_digest():
+        return _run_skin(code, args)
+
+
+def _run_skin(code, args):
     skins = exported_skins()
     if not skins:
         raise BotError(f"Nessuna skin esportata in {FP_ASSETS}. In FortnitePorting esporta su 'Assets Folder'.")
@@ -1131,7 +1167,8 @@ def clean_all(keep=None):
 
 def safe_clean():
     try:
-        clean_all()
+        with quiet_digest():
+            clean_all()
         return True
     except Exception as exc:
         log("ERRORE imprevisto durante la pulizia:", f"{type(exc).__name__}: {str(exc)[:300]}")
@@ -1146,7 +1183,8 @@ def safe_clean():
 def safe_setup():
     import skinbot_setup
     try:
-        skinbot_setup.run()
+        with quiet_digest():
+            skinbot_setup.run()
         return True
     except BotError as exc:
         log("ERRORE:", exc)
