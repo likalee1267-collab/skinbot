@@ -1,7 +1,7 @@
 {
- "version": "1.0.25",
+ "version": "1.0.26",
  "date": "2026-10-11",
- "notes": "Nuovo tasto 'Skin uscita male? Diagnosi': scrive sul Desktop un file con i dettagli della skin da mandare a chi sviluppa il bot",
+ "notes": "Foto fatta troppo presto (capelli o pezzi mancanti): il bot aspetta che FortnitePorting finisca e rifa' la foto se e' vecchia",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,20 +20,20 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "f8c26594161b0a6352312a7377e40b6b661eb5bd04f1788a874c785ba3c7602c",
-   "size": 197
+   "sha256": "4138626ce113dcdc40c0932dcaf9f040abfe77cfac24cb24799fc7cc1385f2fd",
+   "size": 195
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "f013327d2944461ba82198a9535cb79228ab9af4edbdbdfb0c1c039f66da4fb5",
-   "size": 65774
+   "sha256": "7a65d05a1c7b00a7b33cbe55adcd250a3f5f1a59cd857b8648915f2f419806ac",
+   "size": 66690
   },
   "skinbot_gui.py": {
-   "sha256": "65e1647e6a0929932e4243bf1fc5cfa45241fc7f06074b2d0f712a116bb98127",
-   "size": 35692
+   "sha256": "d8636cc5c7cd450b8c777351416a11a330e94374e8d4e18c59f71c7e96d4dac1",
+   "size": 36092
   },
   "skinbot_setup.py": {
    "sha256": "69e5df1019222421ab2384d868c1381871a9b08b169accaf5ca95f9510336b1b",

@@ -1,5 +1,5 @@
 {
-  "version": "1.0.25",
+  "version": "1.0.26",
   "date": "2026-10-11",
-  "notes": "Nuovo tasto 'Skin uscita male? Diagnosi': scrive sul Desktop un file con i dettagli della skin da mandare a chi sviluppa il bot"
+  "notes": "Foto fatta troppo presto (capelli o pezzi mancanti): il bot aspetta che FortnitePorting finisca e rifa' la foto se e' vecchia"
 }

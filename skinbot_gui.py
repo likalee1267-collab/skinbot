@@ -258,8 +258,13 @@ class App:
         """Senza toccare UEFN: converte la skin per avere foto e colori misurati."""
         if not code or code in self.preparing or self.busy:
             return
-        models, parts = self.skins[code], sb.part_textures(code)
-        if self.preview_path(code).is_file() and not sb.preview_stale(code, parts):
+        # modelli riletti adesso: l'elenco puo' essere stato fatto mentre FortnitePorting stava ancora esportando
+        models, parts = sb.exported_skins().get(code) or self.skins[code], sb.part_textures(code)
+        self.skins[code] = models
+        if self.preview_path(code).is_file() and not sb.preview_stale(code, parts, models):
+            return
+        if not sb.export_settled(models, parts):   # export ancora in corso: riprovo tra poco
+            self.root.after(2500, lambda: self.prepare(code) if self.code == code else None)
             return
         self.preparing.add(code)
 

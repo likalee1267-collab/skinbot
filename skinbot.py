@@ -414,13 +414,36 @@ def texture_report(code):
     return ", ".join(names[:40]) or "nessuna texture esportata accanto al modello"
 
 
-def preview_stale(code, parts):
-    """La foto salvata e' stata fatta con texture diverse da quelle che il bot trova adesso."""
+def preview_stale(code, parts, models=None):
+    """La foto salvata non corrisponde piu' a quello che c'e' su disco: texture o modelli diversi, o file piu' nuovi.
+
+    Capita quando la foto viene fatta mentre FortnitePorting sta ancora scrivendo (es. manca il pezzo dei capelli).
+    """
+    folder = HERE / "skins" / code
     try:
-        used = json.loads((HERE / "skins" / code / "convert.json").read_text(encoding="utf-8")).get("textures", {})
+        cfg = json.loads((folder / "convert.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return False
-    return used != {part: str(kinds["color"]) for part, kinds in parts.items()}
+    if cfg.get("textures", {}) != {part: str(kinds["color"]) for part, kinds in parts.items()}:
+        return True
+    if models is None:
+        return False
+    if sorted(cfg.get("models", [])) != sorted(str(m) for m in models):
+        return True
+    try:
+        shot = (folder / "preview.png").stat().st_mtime
+        return any(Path(m).stat().st_mtime > shot for m in models)
+    except OSError:
+        return False
+
+
+def export_settled(models, parts, quiet=4.0):
+    """True se FortnitePorting ha finito: nessun file della skin e' stato scritto negli ultimi secondi."""
+    files = [Path(m) for m in models] + [f for kinds in parts.values() for f in kinds.values()]
+    try:
+        return time.time() - max(f.stat().st_mtime for f in files) > quiet
+    except (OSError, ValueError):
+        return True
 
 
 def part_textures(code, borrow=True):
