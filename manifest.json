@@ -1,7 +1,7 @@
 {
- "version": "1.0.24",
+ "version": "1.0.25",
  "date": "2026-10-11",
- "notes": "Ancora piu' veloce: i comandi a UEFN partono raggruppati invece che uno alla volta",
+ "notes": "Nuovo tasto 'Skin uscita male? Diagnosi': scrive sul Desktop un file con i dettagli della skin da mandare a chi sviluppa il bot",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,20 +20,20 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "5731728d9ecf542ddf5c68fd61d98bd000ad4315cc9f5a94a1475141426b4bfd",
-   "size": 152
+   "sha256": "f8c26594161b0a6352312a7377e40b6b661eb5bd04f1788a874c785ba3c7602c",
+   "size": 197
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "0268c038db9f32a2d7ecfceda68ec57fc434324aefe0da1e8eac166b83748e72",
-   "size": 62609
+   "sha256": "f013327d2944461ba82198a9535cb79228ab9af4edbdbdfb0c1c039f66da4fb5",
+   "size": 65774
   },
   "skinbot_gui.py": {
-   "sha256": "d772b0fcc99aa3401baadb07654e61b884db3f3319dbcdc52bad1d5d8cdf7664",
-   "size": 35047
+   "sha256": "65e1647e6a0929932e4243bf1fc5cfa45241fc7f06074b2d0f712a116bb98127",
+   "size": 35692
   },
   "skinbot_setup.py": {
    "sha256": "69e5df1019222421ab2384d868c1381871a9b08b169accaf5ca95f9510336b1b",

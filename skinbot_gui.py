@@ -118,7 +118,8 @@ class App:
         clean.pack(side="bottom", fill="x", padx=10, pady=(0, 10))
         self._button(left, "Prepara questa mappa", self.setup_map, small=True).pack(side="bottom", fill="x", padx=10, pady=(0, 6))
         self._button(left, "Aggiorna elenco", self.refresh, small=True).pack(side="bottom", fill="x", padx=10, pady=(0, 6))
-        self._button(left, "Storico delle skin fatte", self.show_history, small=True).pack(side="bottom", fill="x", padx=10, pady=6)
+        self._button(left, "Storico delle skin fatte", self.show_history, small=True).pack(side="bottom", fill="x", padx=10, pady=(0, 6))
+        self._button(left, "Skin uscita male? Diagnosi", self.diagnose, small=True).pack(side="bottom", fill="x", padx=10, pady=6)
         # elenco scorrevole con la rotella
         self.list_canvas = tk.Canvas(left, bg=PANEL, highlightthickness=0)
         self.list_canvas.pack(fill="both", expand=True, padx=6)
@@ -536,6 +537,17 @@ class App:
             finally:
                 self.lines.put(None)
         threading.Thread(target=work, daemon=True).start()
+
+    def diagnose(self):
+        """Scrive sul Desktop un file con i dettagli della skin selezionata, da mandare a chi sviluppa il bot."""
+        if not self.code:
+            return
+        try:
+            out = sb.diagnose(self.code)
+            sb.log(f"Diagnosi scritta: {out}")
+            sb.log("  Manda questo file insieme a uno screenshot della skin uscita male.")
+        except Exception as exc:
+            sb.log("ERRORE nella diagnosi:", f"{type(exc).__name__}: {str(exc)[:200]}")
 
     def show_history(self):
         sb.log("STORICO DELLE SKIN FATTE")

@@ -1,5 +1,5 @@
 {
-  "version": "1.0.24",
+  "version": "1.0.25",
   "date": "2026-10-11",
-  "notes": "Ancora piu' veloce: i comandi a UEFN partono raggruppati invece che uno alla volta"
+  "notes": "Nuovo tasto 'Skin uscita male? Diagnosi': scrive sul Desktop un file con i dettagli della skin da mandare a chi sviluppa il bot"
 }

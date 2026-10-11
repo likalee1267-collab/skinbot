@@ -1075,6 +1075,68 @@ def used_styles(code, history=None):
     return used
 
 
+def diagnose(code):
+    """Scrive sul Desktop un file di testo con tutto quello che serve per capire una skin uscita male.
+
+    Solo nomi e misure dei file esportati e le scelte fatte dal bot: nessun dato personale.
+    """
+    lines = [f"Diagnosi Skinbot  -  {time.strftime('%Y-%m-%d %H:%M')}", f"Skin: {display_name(code)} [{code}]"]
+    try:
+        lines.append("Versione: " + json.loads((HERE / "version.json").read_text(encoding="utf-8")).get("version", "?"))
+    except (OSError, ValueError):
+        pass
+    raw = raw_skins()
+    lines.append("")
+    lines.append("MODELLI USATI")
+    for m in exported_skins().get(code, []):
+        owner = skin_code(m.stem)
+        lines.append(f"  {m.relative_to(FP_ASSETS)}   {m.stat().st_size // 1024} KB   {time.strftime('%d/%m %H:%M', time.localtime(m.stat().st_mtime))}"
+                     + ("" if owner.lower() == code.lower() else f"   (in prestito da {owner})"))
+    lines.append("")
+    lines.append("TEXTURE SCELTE DAL BOT")
+    try:
+        for part, kinds in part_textures(code).items():
+            for kind, f in kinds.items():
+                lines.append(f"  {part:14} {kind:9} {f.name}")
+    except Exception as exc:
+        lines.append(f"  errore: {type(exc).__name__}: {exc}")
+    lines.append("")
+    lines.append("TUTTE LE TEXTURE ESPORTATE ACCANTO AI MODELLI")
+    try:
+        from PIL import Image
+        for folder in texture_folders(code):
+            lines.append(f"  [{folder.relative_to(FP_ASSETS)}]")
+            for f in sorted(folder.rglob("*.png")):
+                try:
+                    with Image.open(f) as im:
+                        mean = im.convert("RGB").resize((8, 8)).resize((1, 1)).getpixel((0, 0))
+                        lines.append(f"    {str(f.relative_to(folder)):60} {im.size[0]}x{im.size[1]}  colore medio {wb.to_hex(mean)}")
+                except OSError as exc:
+                    lines.append(f"    {f.name}   illeggibile: {exc}")
+    except Exception as exc:
+        lines.append(f"  errore: {type(exc).__name__}: {exc}")
+    lines.append("")
+    lines.append("ALTRI CODICI DELLA STESSA FAMIGLIA ESPORTATI")
+    root = code.split("_")[0].lower()
+    for other, files in sorted(raw.items()):
+        if other.lower().startswith(root) and other != code:
+            lines.append(f"  {other}: " + ", ".join(f.name for f in files))
+    for name in ("convert.json", "surface_colors.json"):
+        f = HERE / "skins" / code / name
+        if f.is_file():
+            lines += ["", name.upper(), "  " + f.read_text(encoding="utf-8", errors="replace")[:3000]]
+    lines += ["", "TINTA SCELTA: " + str(skin_dye(code)), "STORICO: " + json.dumps(load_history().get(code, {}), ensure_ascii=False)]
+    try:
+        tail = LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines()[-60:]
+        lines += ["", "ULTIME RIGHE DEL REGISTRO"] + ["  " + ln for ln in tail]
+    except OSError:
+        pass
+    desktop = Path.home() / "Desktop"
+    out = (desktop if desktop.is_dir() else HERE) / f"skinbot_diagnosi_{code}.txt"
+    out.write_text("\n".join(lines), encoding="utf-8")
+    return out
+
+
 def history_lines():
     """Lo storico in righe leggibili, dalla skin fatta piu' di recente."""
     data = load_history()

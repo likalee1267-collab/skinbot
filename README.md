@@ -1,7 +1,7 @@
 # Skinbot
 
-Canale di aggiornamento automatico di Skinbot. Versione 1.0.24 (2026-10-11).
+Canale di aggiornamento automatico di Skinbot. Versione 1.0.25 (2026-10-11).
 
-Ancora piu' veloce: i comandi a UEFN partono raggruppati invece che uno alla volta
+Nuovo tasto 'Skin uscita male? Diagnosi': scrive sul Desktop un file con i dettagli della skin da mandare a chi sviluppa il bot
 
 Per installare: scarica ed esegui `Installa Skinbot.bat`.
