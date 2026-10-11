@@ -273,7 +273,17 @@ def palette_variants(colors):
     out = [("Automatico", palette_from_weights(colors))]
     tones = palette_tones(colors)
     if not tones:
-        return out
+        # skin senza tinte (bianca, nera, grigia): il bianco e nero resta, cambia il colore d'accento
+        white, black = (238, 238, 244), (22, 22, 28)
+        for name, cols in (("Nero e rosso", [black, (225, 30, 40), white]),
+                           ("Rosso sangue", [(200, 24, 36), black, white]),
+                           ("Viola notte", [(110, 60, 220), black, white]),
+                           ("Ghiaccio", [white, (60, 190, 255), black]),
+                           ("Verde tossico", [black, (90, 255, 80), white]),
+                           ("Oro", [black, (255, 190, 40), white]),
+                           ("Rosa shock", [(255, 60, 170), black, white])):
+            out.append((name, cols))
+        return [(name, [tuple(c) for c in cols]) for name, cols in out]
 
     def bright(t):
         return hsv(t[0], max(0.6, min(t[1], 0.9)), 1.0)

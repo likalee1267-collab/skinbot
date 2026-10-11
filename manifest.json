@@ -1,7 +1,7 @@
 {
- "version": "1.0.26",
+ "version": "1.0.27",
  "date": "2026-10-11",
- "notes": "Foto fatta troppo presto (capelli o pezzi mancanti): il bot aspetta che FortnitePorting finisca e rifa' la foto se e' vecchia",
+ "notes": "Skin in bianco e nero (es. Ghostface): 7 stili di colore in piu' con accenti diversi",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,8 +20,8 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "4138626ce113dcdc40c0932dcaf9f040abfe77cfac24cb24799fc7cc1385f2fd",
-   "size": 195
+   "sha256": "2a3ecc2d03e76b0d57cbd94a963084520d0697353f71cb700fd48aed815e0d58",
+   "size": 154
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
@@ -44,8 +44,8 @@
    "size": 13796
   },
   "wallbot.py": {
-   "sha256": "d19cd92238e75b4ebe647dc624b7cbbf105c12617d464ce10fda3731bb7b464f",
-   "size": 19584
+   "sha256": "9177a2413edceecc08617fadb8658f2b2bf1df18b5be15d0a9ec83443f940df9",
+   "size": 20361
   },
   "gui.py": {
    "sha256": "d4c7bbe1dda7629e15d0ee4e99c453217300b65c46d913fb1e518fb071ce2e3e",
