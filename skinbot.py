@@ -105,6 +105,97 @@ def disk(path):
 
 # ---------------------------------------------------------------- UEFN (MCP via HTTP)
 
+T_PROG = "editor_toolset.toolsets.programmatic.ProgrammaticToolset"
+SCRIPT_HEAD = r"""import json
+P = json.loads(%r)
+
+
+def tool(_tool, **args):
+    result = execute_tool(_tool, json.dumps(args))
+    try:
+        return result["returnValue"]
+    except Exception:
+        return None
+
+
+def ref(path):
+    name = path.rsplit("/", 1)[-1]
+    return {"refPath": path if "." in name else path + "." + name}
+
+"""
+BATCH_BODY = r"""
+def run():
+    return {"out": [tool(name, **args) for name, args in P["calls"]]}
+"""
+IMPORT_BODY = r"""
+ASSET, TEX, MESH = P["T_ASSET"], P["T_TEX"], P["T_MESH"]
+MI, OBJ = P["T_MI"], P["T_OBJ"]
+
+
+def pick_part(slot, parts):
+    low = slot.lower()
+    inside = [p for p in parts if p.lower() in low]
+    if inside:
+        return max(inside, key=len)
+    if "eye" in low and "Head" in parts:
+        return "Head"
+    return "Body" if "Body" in parts else (list(parts)[0] if parts else None)
+
+
+def run():
+    folder, mesh, parts = P["folder"], P["mesh"], P["parts"]
+    saved, cache = [mesh], {}
+    new_mesh = not tool(ASSET + ".exists", path=mesh)
+    if new_mesh:
+        tool(MESH + ".import_file", folder_path=folder, asset_name=mesh.rsplit("/", 1)[-1], source_file=P["fbx"],
+             import_materials=False, import_textures=False, combine_meshes=True)
+
+    def texture(item, normal=False):
+        source, stem = item
+        asset = folder + "/Textures/" + stem
+        if asset not in cache:
+            if not tool(ASSET + ".exists", path=asset):
+                tool(TEX + ".import_file", folder_path=folder + "/Textures", asset_name=stem, source_file=source)
+                if normal:
+                    tool(OBJ + ".set_properties", instance=ref(asset),
+                         values=json.dumps({"sRGB": False, "compressionSettings": "TC_Normalmap"}))
+            cache[asset] = True
+            saved.append(asset)
+        return asset
+
+    eye_asset = texture(P["eye"]) if P["eye"] else None
+    made = set()
+    for slot in tool(MESH + ".get_material_slots", mesh=ref(mesh)) or []:
+        part = pick_part(slot.split(P["code"] + "_")[-1], parts)
+        if not part:
+            continue
+        kinds = parts[part]
+        is_eye = bool(slot.endswith("_Eyes") and eye_asset)
+        mi = folder + "/MI_" + P["code"] + "_" + part + ("_Eyes" if is_eye else "")
+        if mi not in made:                         # lo stesso materiale serve a piu' slot: si prepara una volta
+            made.add(mi)
+            if not tool(ASSET + ".exists", path=mi):
+                tool(MI + ".create", folder_path=folder, asset_name=mi.rsplit("/", 1)[-1],
+                     parent=ref(P["EYE_MAT"] if is_eye else P["SKIN_MAT"]))
+            tool(MI + ".set_texture_parameter", instance=ref(mi), name="BaseColorTex", value=ref(texture(kinds["color"])))
+            if is_eye:
+                tool(MI + ".set_texture_parameter", instance=ref(mi), name="PupilTex", value=ref(eye_asset))
+            else:
+                if "normal" in kinds:
+                    tool(MI + ".set_texture_parameter", instance=ref(mi), name="NormalTex",
+                         value=ref(texture(kinds["normal"], True)))
+                if "emissive" in kinds:
+                    tool(MI + ".set_texture_parameter", instance=ref(mi), name="EmissiveTex",
+                         value=ref(texture(kinds["emissive"])))
+                tool(MI + ".set_scalar_parameter", instance=ref(mi), name="EmissiveStrength",
+                     value=P["glow"] if "emissive" in kinds else 0.0)
+            saved.append(mi)
+        tool(MESH + ".set_material", mesh=ref(mesh), slot_name=slot, material=ref(mi))
+    tool(ASSET + ".save_assets", asset_paths=sorted(set(saved)))
+    return {"new_mesh": new_mesh, "saved": len(set(saved))}
+"""
+
+
 class Uefn:
     def __init__(self, url=MCP_URL):
         self.url, self.sid, self.n = url, None, 0
@@ -150,13 +241,38 @@ class Uefn:
     def exists(self, path):
         return bool(self.call(T_ASSET, "exists", path=path))
 
+    def script(self, body, **params):
+        """Esegue dentro UEFN uno script che concatena piu' strumenti: una sola andata e ritorno.
+
+        Ogni chiamata normale costa ~0.4 s di attesa fissa; lo script le fa tutte di fila.
+        `body` definisce run() e puo' usare P (i parametri), tool(nome, **argomenti) e ref(percorso).
+        """
+        src = SCRIPT_HEAD % json.dumps(params) + body
+        out = self.call(T_PROG, "execute_tool_script", script=src)
+        return json.loads(out) if isinstance(out, str) else (out or {})
+
+    def batch(self, calls):
+        """[(toolset, strumento, argomenti)] eseguiti di fila dentro UEFN; ritorna i risultati in ordine.
+
+        Se UEFN non ha lo strumento per gli script, le chiamate vengono fatte una alla volta.
+        """
+        if not calls:
+            return []
+        try:
+            return self.script(BATCH_BODY, calls=[[f"{ts}.{tool}", args] for ts, tool, args in calls])["out"]
+        except RuntimeError as exc:
+            if "execute_tool_script" not in str(exc) and "Programmatic" not in str(exc):
+                raise
+            return [self.call(ts, tool, **args) for ts, tool, args in calls]
+
     def preflight(self):
         level = self.call(T_SCENE, "get_current_level") or ""
         project = level.strip("/").split("/")[0]
         if not project:
             raise BotError("UEFN non ha una mappa aperta: apri il progetto e riprova.")
         configure(project)                        # funziona con qualsiasi nome di progetto
-        missing = [p.rsplit("/", 1)[-1] for p in REQUIRED_ASSETS if not self.exists(p)]
+        found = self.batch([(T_ASSET, "exists", {"path": p}) for p in REQUIRED_ASSETS])
+        missing = [p.rsplit("/", 1)[-1] for p, ok in zip(REQUIRED_ASSETS, found) if not ok]
         if missing:
             raise BotError(f"Il progetto '{project}' non e' ancora preparato per skinbot (mancano "
                            + ", ".join(missing) + "). Premi 'Prepara questa mappa' o lancia: python skinbot.py --setup")
@@ -704,6 +820,29 @@ def pick_part(slot_part, parts):
 
 
 def import_skin(ue, code, fbx, parts, eye_tex, borrowed=False):
+    """Importa mesh, texture e materiali della skin. Prova in un colpo solo dentro UEFN; se non va, passo passo."""
+    folder = f"{ROOT}/Skins/Skin_{code}"
+    mesh = f"{folder}/SM_{code}_v{CONVERTER_VERSION}" + ("_full" if borrowed else "")
+    item = lambda path: [disk(path), Path(path).stem]
+    try:
+        out = ue.script(IMPORT_BODY, code=code, folder=folder, mesh=mesh, fbx=disk(fbx),
+                        parts={part: {kind: item(path) for kind, path in kinds.items()} for part, kinds in parts.items()},
+                        eye=item(eye_tex) if eye_tex else None, glow=EMISSIVE_STRENGTH,
+                        SKIN_MAT=SKIN_MAT, EYE_MAT=EYE_MAT,
+                        T_ASSET=T_ASSET, T_TEX=T_TEX, T_MESH=T_MESH, T_MI=T_MI, T_OBJ=T_OBJ)
+    except RuntimeError as exc:
+        log("  (importazione veloce non riuscita, procedo passo passo:", str(exc)[:160].replace("\n", " ") + ")")
+        return import_skin_slow(ue, code, fbx, parts, eye_tex, borrowed)
+    if out.get("new_mesh"):
+        try:                                       # statue giganti: mai un ostacolo per i giocatori
+            ue.call(T_MESH, "remove_collisions", mesh=ref(mesh))
+            ue.call(T_ASSET, "save_assets", asset_paths=[mesh])
+        except RuntimeError as exc:
+            log("  (collisione non rimossa:", str(exc)[:80] + ")")
+    return mesh
+
+
+def import_skin_slow(ue, code, fbx, parts, eye_tex, borrowed=False):
     folder = f"{ROOT}/Skins/Skin_{code}"
     # "_full": variante completata con la testa dello stile base (la mesh senza testa aveva lo stesso nome)
     name = f"SM_{code}_v{CONVERTER_VERSION}" + ("_full" if borrowed else "")
@@ -780,16 +919,17 @@ def apply_layout(ue, layout):
 
 
 def apply_theme(ue, colors):
-    for name, col in zip(("ColorBase", "ColorA", "ColorB"), colors):
-        ue.call(T_MI, "set_vector_parameter", instance=ref(WALL_MI), name=name, value=linear(col))
-    if not ue.exists(SKY_MI):                     # mappa senza cielo tingibile: si ricolora solo la rampa
-        ue.call(T_ASSET, "save_assets", asset_paths=[WALL_MI])
-        return False
-    ue.call(T_MI, "set_vector_parameter", instance=ref(SKY_MI), name="Tinta", value=sky_tint(sky_source(colors)))
-    for name, value in SKY_SCALARS:
-        ue.call(T_MI, "set_scalar_parameter", instance=ref(SKY_MI), name=name, value=value)
-    ue.call(T_ASSET, "save_assets", asset_paths=[WALL_MI, SKY_MI])
-    return True
+    calls = [(T_MI, "set_vector_parameter", {"instance": ref(WALL_MI), "name": name, "value": linear(col)})
+             for name, col in zip(("ColorBase", "ColorA", "ColorB"), colors)]
+    sky = ue.exists(SKY_MI)                        # mappa senza cielo tingibile: si ricolora solo la rampa
+    if sky:
+        calls.append((T_MI, "set_vector_parameter", {"instance": ref(SKY_MI), "name": "Tinta",
+                                                     "value": sky_tint(sky_source(colors))}))
+        calls += [(T_MI, "set_scalar_parameter", {"instance": ref(SKY_MI), "name": name, "value": value})
+                  for name, value in SKY_SCALARS]
+    calls.append((T_ASSET, "save_assets", {"asset_paths": [WALL_MI, SKY_MI] if sky else [WALL_MI]}))
+    ue.batch(calls)
+    return sky
 
 
 def spot_transform(spot, turn=0):
@@ -825,29 +965,30 @@ def place_statues(ue, mesh, size_m=None):
         existing = []
     spots = {spot[0]: spot for spot in STATUE_SPOTS}
     if existing:                                  # stesse statue, cambia solo la mesh
-        fixed = 0
-        for desc in existing:
-            actor = {"refPath": desc["actorPath"]}
-            ue.call(T_OBJ, "set_properties", instance={"refPath": desc["actorPath"] + ".StaticMeshComponent0"},
-                    values=json.dumps({"staticMesh": ref(mesh)}))
+        fixed, writes = 0, []
+        actors = [{"refPath": desc["actorPath"]} for desc in existing]
+        try:
+            poses = ue.batch([(T_ACTOR, "get_actor_transform", {"actor": actor}) for actor in actors])
+        except RuntimeError:
+            poses = [None] * len(actors)
+        for desc, actor, now in zip(existing, actors, poses):
+            writes.append((T_OBJ, "set_properties", {"instance": {"refPath": desc["actorPath"] + ".StaticMeshComponent0"},
+                                                     "values": json.dumps({"staticMesh": ref(mesh)})}))
             # la rotazione giusta dipende dalla mesh; posizione e scala restano quelle scelte a mano.
             # Si corregge solo se la statua ha ancora una rotazione messa dal bot (0, base, base+90).
             spot = spots.get(desc.get("label", ""))
-            if spot:
-                try:
-                    now = ue.call(T_ACTOR, "get_actor_transform", actor=actor) or {}
-                    yaw = (now.get("rotation") or {}).get("yaw", 0) % 360
-                    want = (spot[4] + turn) % 360
-                    ours = any(abs(yaw - v % 360) < 1 for v in (0, spot[4], spot[4] + 90))
-                    if ours and abs(yaw - want) >= 1:
-                        xform = spot_transform(spot, turn)
-                        if abs(yaw) >= 1 and now.get("location") and now.get("scale"):
-                            xform["location"], xform["scale"] = now["location"], now["scale"]
-                        ue.call(T_ACTOR, "set_actor_transform", actor=actor, xform=xform)
-                        fixed += 1
-                except (RuntimeError, AttributeError, TypeError):
-                    pass
-            ue.call(T_SCENE, "save_actor", actor=actor)
+            if spot and isinstance(now, dict):
+                yaw = (now.get("rotation") or {}).get("yaw", 0) % 360
+                want = (spot[4] + turn) % 360
+                ours = any(abs(yaw - v % 360) < 1 for v in (0, spot[4], spot[4] + 90))
+                if ours and abs(yaw - want) >= 1:
+                    xform = spot_transform(spot, turn)
+                    if abs(yaw) >= 1 and now.get("location") and now.get("scale"):
+                        xform["location"], xform["scale"] = now["location"], now["scale"]
+                    writes.append((T_ACTOR, "set_actor_transform", {"actor": actor, "xform": xform}))
+                    fixed += 1
+            writes.append((T_SCENE, "save_actor", {"actor": actor}))
+        ue.batch(writes)
         return len(existing), "aggiornate" + (f" ({fixed} raddrizzate)" if fixed else "") + note
     for spot in STATUE_SPOTS:
         xform = spot_transform(spot, turn)

@@ -75,6 +75,10 @@ def spawn(ue, label, xform, **source):
 def place(ue):
     """Crea quello che manca. Ritorna (cascate create, stemmi creati, nota)."""
     have = {d.get("label") for d in existing(ue)}
+    wanted = {f"Cascata_{name}" for name, _ in SPOTS} | {f"XP_{name}_{row}_{col}" for name, _ in SPOTS
+                                                       for row in range(len(BADGE_ROWS)) for col in range(len(BADGE_COLUMNS))}
+    if wanted <= have:                             # tutto gia' al suo posto: niente altre domande a UEFN
+        return 0, 0, ""
     mesh = badge_mesh(ue)
     falls = badges = 0
     for name, offset in SPOTS:

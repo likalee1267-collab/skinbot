@@ -1,7 +1,7 @@
 {
- "version": "1.0.23",
+ "version": "1.0.24",
  "date": "2026-10-11",
- "notes": "Molto piu' veloce: l'importazione in UEFN passa da quasi 2 minuti a circa 20 secondi",
+ "notes": "Ancora piu' veloce: i comandi a UEFN partono raggruppati invece che uno alla volta",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,16 +20,16 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "a4796bc6aceee39320ee2bf96e89859149bb47c9d3c2484f760d451b49d7b2f2",
-   "size": 154
+   "sha256": "5731728d9ecf542ddf5c68fd61d98bd000ad4315cc9f5a94a1475141426b4bfd",
+   "size": 152
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "2ea89d3498caffcebe6d37faf9a5b0545485d50f859d526291867bf497e8362a",
-   "size": 55787
+   "sha256": "0268c038db9f32a2d7ecfceda68ec57fc434324aefe0da1e8eac166b83748e72",
+   "size": 62609
   },
   "skinbot_gui.py": {
    "sha256": "d772b0fcc99aa3401baadb07654e61b884db3f3319dbcdc52bad1d5d8cdf7664",
@@ -52,8 +52,8 @@
    "size": 14003
   },
   "cascate.py": {
-   "sha256": "a1cc0a5aa738c91829bca685bcc14752b63341366a61d0cec3b2ea0c278ec03a",
-   "size": 5250
+   "sha256": "0c9769916f39a1bd78bcbb8669dcd250a3a1db42b1ca402c88e74c209384b111",
+   "size": 5734
   },
   "layouts/original.json": {
    "sha256": "1f931927c90a030544b2ea368a52942c73fc52bd214387309a990fca185f44b2",
