@@ -1,7 +1,7 @@
 # Skinbot
 
-Canale di aggiornamento automatico di Skinbot. Versione 1.0.28 (2026-10-11).
+Canale di aggiornamento automatico di Skinbot. Versione 1.0.29 (2026-10-15).
 
-Importazione di una skin nuova ancora piu' rapida: un solo salvataggio invece di due
+Skin con corpo comune (es. Raven) riconosciute e colorate giuste; niente piu' teste di altre skin attaccate per errore
 
 Per installare: scarica ed esegui `Installa Skinbot.bat`.

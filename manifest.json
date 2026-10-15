@@ -1,7 +1,7 @@
 {
- "version": "1.0.28",
- "date": "2026-10-11",
- "notes": "Importazione di una skin nuova ancora piu' rapida: un solo salvataggio invece di due",
+ "version": "1.0.29",
+ "date": "2026-10-15",
+ "notes": "Skin con corpo comune (es. Raven) riconosciute e colorate giuste; niente piu' teste di altre skin attaccate per errore",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,16 +20,16 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "cedd63941c3096a49b92079b24e5b2311c2c55a62a3a077e1c0f86f292b5ae99",
-   "size": 154
+   "sha256": "b149b019f0df80a34d913d9503125b20fec1efc06bdaa29cbb30acdbc52b47ea",
+   "size": 188
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "7581c7654cd46dd9f4bc7f60fdb90b32f9206021e8bdb5f87442047cd26698a0",
-   "size": 66829
+   "sha256": "a89d909df4f3ce2171692a8c32d1faae1f8bfa21c0ea61832cb9f5f318849948",
+   "size": 69161
   },
   "skinbot_gui.py": {
    "sha256": "d8636cc5c7cd450b8c777351416a11a330e94374e8d4e18c59f71c7e96d4dac1",

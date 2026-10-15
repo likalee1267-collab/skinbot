@@ -308,10 +308,21 @@ def exported_skins():
     Le varianti di stile escono da FortnitePorting con il solo corpo: testa e accessori del viso
     sono quelli dello stile base, quindi vengono presi da li'.
     """
-    raw = raw_skins()
+    raw = latest_bodies(raw_skins())
     skins = {}
+    BODY_DONOR.clear()
+    absorbed = set()
     for code, files in raw.items():
+        donor = body_donor(code, raw)
+        if donor:                                  # skin con un corpo generico dal nome diverso (es. Raven)
+            BODY_DONOR[code] = donor
+            absorbed.add(donor)
+    for code, files in raw.items():
+        if code in absorbed:                       # quel corpo non e' una skin a se': sta dentro l'altra
+            continue
         files = list(files)
+        if code in BODY_DONOR:
+            files += [p for p in raw[BODY_DONOR[code]] if is_body(p)]
         if has_body(files):                        # braccia e simili esportati a parte: "<codice>Arms"
             for other, extra in raw.items():
                 if (other.lower().startswith(code.lower()) and len(other) > len(code)
@@ -324,6 +335,40 @@ def exported_skins():
             files += shared_head(files, raw)
         skins[code] = sorted(files)
     return skins
+
+
+BODY_DONOR = {}                    # skin -> codice del corpo generico che usa (riempito da exported_skins)
+
+
+def stamp_of(files):
+    return max(p.stat().st_mtime for p in files)
+
+
+def latest_bodies(raw):
+    """Stesso codice esportato piu' volte con corpi diversi (es. Scarecrow uomo e donna): vale l'export piu' recente."""
+    out = {}
+    for code, files in raw.items():
+        bodies = [p for p in files if is_body(p)]
+        if len(bodies) > 1 and len({p.parent.parent.name for p in bodies}) > 1:
+            newest = max(p.stat().st_mtime for p in bodies)
+            files = [p for p in files if abs(p.stat().st_mtime - newest) < 120]
+        out[code] = files
+    return out
+
+
+def body_donor(code, raw):
+    """Il corpo generico uscito nello stesso export di una skin che ha solo testa e accessori.
+
+    Alcune skin usano un corpo comune con un altro nome in codice (es. ClawedRaven usa il corpo
+    CosmicSquatter): FortnitePorting li scrive insieme, ma il corpo da solo non ha ne' testa ne' viso.
+    """
+    files = raw[code]
+    if has_body(files) or not files:
+        return None
+    stamp = stamp_of(files)
+    near = [other for other, extra in raw.items()
+            if other != code and has_body(extra) and not has_head(extra) and abs(stamp_of(extra) - stamp) < 60]
+    return near[0] if len(near) == 1 else None
 
 
 def shared_head(files, raw):
@@ -343,7 +388,8 @@ def has_body(models):
 
 
 def has_head(models):
-    return any("Heads" in p.parts for p in models)
+    """La skin ha la sua testa: nella cartella Heads o come pezzo "<codice>_Head" accanto al corpo."""
+    return any("Heads" in p.parts or re.search(r"_Head(_|$)", p.stem) for p in models)
 
 
 def latest_code(skins):
@@ -467,6 +513,10 @@ def part_textures(code, borrow=True):
     parts = {part: kinds for part, kinds in parts.items() if "color" in kinds}
     if not parts:                                  # texture con un nome fuori schema (es. Spider-Man)
         parts = folder_textures(code)
+    donor = BODY_DONOR.get(code) if borrow else None
+    if donor:                                      # corpo generico: le sue texture vestono il corpo
+        for part, kinds in part_textures(donor, borrow=False).items():
+            parts.setdefault(part, kinds)
     base = base_code(code, raw_skins()) if borrow else None
     if base:                                       # testa e viso dello stile base, se la variante non li ha
         for part, kinds in part_textures(base, borrow=False).items():

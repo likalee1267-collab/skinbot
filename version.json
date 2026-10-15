@@ -1,5 +1,5 @@
 {
-  "version": "1.0.28",
-  "date": "2026-10-11",
-  "notes": "Importazione di una skin nuova ancora piu' rapida: un solo salvataggio invece di due"
+  "version": "1.0.29",
+  "date": "2026-10-15",
+  "notes": "Skin con corpo comune (es. Raven) riconosciute e colorate giuste; niente piu' teste di altre skin attaccate per errore"
 }
