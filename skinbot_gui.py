@@ -3,6 +3,7 @@ import argparse
 import json
 import queue
 import random
+import re
 import sys
 import threading
 import time
@@ -159,6 +160,9 @@ class App:
         # solo per le skin che il gioco tinge (pelo grigio nell'export): il colore lo scegli qui
         self.dye_btn = tk.Label(chips, text="Colore della skin", font=FONT_B, padx=12, pady=6, cursor="hand2")
         self.dye_btn.bind("<Button-1>", lambda e: self.pick_dye())
+        # skin con piu' varianti di colore esportate (es. Ghoul Trooper verde e rosa): un clic passa alla successiva
+        self.variant_btn = tk.Label(chips, text="", font=FONT_B, padx=12, pady=6, cursor="hand2", bg=ROW_SEL, fg=TEXT)
+        self.variant_btn.bind("<Button-1>", lambda e: self.next_variant())
 
         tk.Label(right, text="STILE DEI COLORI  -  stessa skin, video diverso: clicca per provarlo nell'anteprima",
                  font=("Segoe UI", 9), bg=BG, fg=MUTED).pack(anchor="w", pady=(10, 4))
@@ -304,6 +308,7 @@ class App:
         self.auto_colors()                         # skin nuova: si riparte dallo stile automatico
         self.pick_style(self.fresh_style())        # ...o dal primo stile non ancora usato per questa skin
         self.show_dye()
+        self.show_variant()
 
     def fresh_style(self):
         """L'indice del primo stile mai usato per questa skin; se li ha gia' usati tutti, quello usato da piu' tempo."""
@@ -313,6 +318,32 @@ class App:
             if name not in used:
                 return i
         return min(range(len(names)), key=lambda i: used[names[i]][-1])
+
+    def show_variant(self):
+        variants = sb.skin_variants(self.code) if self.code else {}
+        if len(variants) > 1:
+            name = sb.default_variant(self.code, variants)
+            nice = re.sub(r"^[MF]_(MED|LRG|SML)_", "", name).replace("_", " ")
+            self.variant_btn.config(text=f"Variante: {nice}  ({sorted(variants).index(name) + 1}/{len(variants)})")
+            self.variant_btn.pack(side="left", padx=(8, 0))
+        else:
+            self.variant_btn.pack_forget()
+
+    def next_variant(self):
+        """Passa alla variante di colore successiva della skin e rifa' la foto."""
+        if self.busy or not self.code or self.code in self.preparing:
+            return
+        variants = sb.skin_variants(self.code)
+        if len(variants) < 2:
+            return
+        names = sorted(variants)
+        now = sb.default_variant(self.code, variants)
+        sb.set_variant(self.code, names[(names.index(now) + 1) % len(names)])
+        self.palettes.pop(self.code, None)
+        self.style_cache.pop(self.code, None)
+        self.show_variant()
+        self.prepare(self.code)
+        self.auto_colors()
 
     def show_dye(self):
         if self.code and sb.can_dye(self.code):

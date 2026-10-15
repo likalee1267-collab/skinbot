@@ -363,7 +363,7 @@ def body_donor(code, raw):
     CosmicSquatter): FortnitePorting li scrive insieme, ma il corpo da solo non ha ne' testa ne' viso.
     """
     files = raw[code]
-    if has_body(files) or not files:
+    if has_body(files) or not files or not (has_head(files) or any("FaceAcc" in p.stem for p in files)):
         return None
     stamp = stamp_of(files)
     near = [other for other, extra in raw.items()
@@ -433,6 +433,72 @@ def texture_folders(code):
             if tex.is_dir() and tex not in folders:
                 folders.append(tex)
     return folders
+
+
+def model_dirs(code):
+    """Le cartelle dei modelli della skin, sia sotto Game sia sotto BRCosmetics (le texture stanno spesso nell'altra)."""
+    dirs = []
+    for model in exported_skins().get(code, raw_skins().get(code, [])):
+        for parent in model.parents:
+            if parent.name in ("Meshes", "Mesh"):
+                rel = parent.parent.relative_to(FP_ASSETS)
+                for top in ("Game", "BRCosmetics"):
+                    twin = FP_ASSETS / top / Path(*rel.parts[1:])
+                    if twin.is_dir() and twin not in dirs:
+                        dirs.append(twin)
+                break
+    return dirs
+
+
+def skin_variants(code):
+    """{variante: [texture]}: le texture in Skins/<variante>/Textures accanto ai modelli ("Base" = Textures diretta)."""
+    found = {}
+    for d in model_dirs(code):
+        for folder in [d / "Textures"] + sorted(d.glob("Skin*/*/Textures")):
+            if folder.is_dir():
+                name = "Base" if folder.parent == d else folder.parent.name
+                found.setdefault(name, []).extend(sorted(folder.glob("*.png")))
+    return {name: files for name, files in found.items() if files}
+
+
+def default_variant(code, variants):
+    """La variante da usare: quella scelta nella finestra, altrimenti quella che porta il nome del corpo."""
+    chosen = load_settings().get("varianti", {}).get(code)
+    if chosen in variants:
+        return chosen
+    tokens = {skin_code(m.stem).lower() for m in exported_skins().get(code, [])}
+
+    def score(name):
+        files = variants[name]
+        own = sum(any(tok in f.stem.lower() for tok in tokens) for f in files)
+        return (own, len(files), name != "Base")
+    return max(variants, key=score)
+
+
+def set_variant(code, name):
+    data = load_settings()
+    data.setdefault("varianti", {})[code] = name
+    SETTINGS.write_text(json.dumps(data), encoding="utf-8")
+
+
+def variant_textures(code):
+    """Pezzi -> texture dalla variante scelta. Vuoto se la skin non ha varianti in sottocartelle."""
+    variants = skin_variants(code)
+    if not variants or set(variants) == {"Base"}:
+        return {}
+    best = {}
+    for tex in variants[default_variant(code, variants)]:
+        found = texture_kind(re.sub(r"^T_", "", tex.stem, flags=re.I).split("_"))
+        if not found:
+            continue
+        kind, order, rest = found
+        words = [w.lower() for w in rest]
+        part = next((w for w in PART_WORDS if w.lower() in words), "Body")
+        slot = best.setdefault(part, {})
+        if kind not in slot or order < slot[kind][0]:
+            slot[kind] = (order, tex)
+    parts = {part: {kind: tex for kind, (_, tex) in kinds.items()} for part, kinds in best.items()}
+    return {part: kinds for part, kinds in parts.items() if "color" in kinds}
 
 
 def folder_textures(code):
@@ -513,8 +579,8 @@ def part_textures(code, borrow=True):
                 slot[kind] = (rank, tex)
     parts = {part: {kind: tex for kind, (_, tex) in kinds.items()} for part, kinds in best.items()}
     parts = {part: kinds for part, kinds in parts.items() if "color" in kinds}
-    if not parts:                                  # texture con un nome fuori schema (es. Spider-Man)
-        parts = folder_textures(code)
+    if not parts:                                  # texture con un nome fuori schema (es. Spider-Man, Ghoul Trooper)
+        parts = variant_textures(code) or folder_textures(code)
     donor = BODY_DONOR.get(code) if borrow else None
     if donor:                                      # corpo generico: le sue texture vestono il corpo
         for part, kinds in part_textures(donor, borrow=False).items():

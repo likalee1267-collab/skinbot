@@ -1,7 +1,7 @@
 {
- "version": "1.0.30",
+ "version": "1.0.31",
  "date": "2026-10-15",
- "notes": "Anteprima: ora si vedono anche le parti luminose delle skin (es. gli occhi di Corvus)",
+ "notes": "Skin vecchie con corpo generico (es. Ghoul Trooper) ora colorate giuste, con un tasto per scegliere la variante di colore",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,20 +20,20 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "9fbb3dec4d526f15ba72d3ea7cc888e29d6031a46b36bfd26b91c5524ffa84fa",
-   "size": 155
+   "sha256": "41e65e8c87e6ecbfc2793140edb1c15c725a9feb852029a3bc79906b4767c0a4",
+   "size": 191
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "0e125b0db9d60311cab8cde6f1f5595e4b845d070b85880c90f4bde7b6032939",
-   "size": 69499
+   "sha256": "c892fc6d07fd2a225e1a7af34e84ebd3ba9d7118c1bff6061c668d1d823cfa5d",
+   "size": 72449
   },
   "skinbot_gui.py": {
-   "sha256": "d8636cc5c7cd450b8c777351416a11a330e94374e8d4e18c59f71c7e96d4dac1",
-   "size": 36092
+   "sha256": "710474e845d58d01fb9b51ba65b042d8ce024e12ffc9449bd43460694557aaad",
+   "size": 37608
   },
   "skinbot_setup.py": {
    "sha256": "69e5df1019222421ab2384d868c1381871a9b08b169accaf5ca95f9510336b1b",

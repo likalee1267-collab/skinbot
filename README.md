@@ -1,7 +1,7 @@
 # Skinbot
 
-Canale di aggiornamento automatico di Skinbot. Versione 1.0.30 (2026-10-15).
+Canale di aggiornamento automatico di Skinbot. Versione 1.0.31 (2026-10-15).
 
-Anteprima: ora si vedono anche le parti luminose delle skin (es. gli occhi di Corvus)
+Skin vecchie con corpo generico (es. Ghoul Trooper) ora colorate giuste, con un tasto per scegliere la variante di colore
 
 Per installare: scarica ed esegui `Installa Skinbot.bat`.
