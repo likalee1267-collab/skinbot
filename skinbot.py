@@ -368,7 +368,14 @@ def body_donor(code, raw):
     stamp = stamp_of(files)
     near = [other for other, extra in raw.items()
             if other != code and has_body(extra) and not has_head(extra) and abs(stamp_of(extra) - stamp) < 60]
-    return near[0] if len(near) == 1 else None
+    if len(near) != 1:
+        return None
+    # se le texture del corpo portano il nome del corpo e non della testa, la skin vera e' il corpo e la
+    # testa e' solo in comune (es. Cocorit usa la testa di Corvus ma ha le sue texture T_CosmicSquatter_Body)
+    own = lambda c: any(FP_ASSETS.rglob(f"T_{c}_Body_*.png"))
+    if own(near[0]) and not own(code):
+        return None
+    return near[0]
 
 
 def shared_head(files, raw):

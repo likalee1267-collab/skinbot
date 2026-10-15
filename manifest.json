@@ -1,7 +1,7 @@
 {
- "version": "1.0.31",
+ "version": "1.0.32",
  "date": "2026-10-15",
- "notes": "Skin vecchie con corpo generico (es. Ghoul Trooper) ora colorate giuste, con un tasto per scegliere la variante di colore",
+ "notes": "Cocorit e skin che usano la testa di un'altra skin: restano col loro nome e le loro texture",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,16 +20,16 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "41e65e8c87e6ecbfc2793140edb1c15c725a9feb852029a3bc79906b4767c0a4",
-   "size": 191
+   "sha256": "c907099d09cef30c45a6f57b3b854cfda3dd85192f8099c1432110d60f677991",
+   "size": 161
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "c892fc6d07fd2a225e1a7af34e84ebd3ba9d7118c1bff6061c668d1d823cfa5d",
-   "size": 72449
+   "sha256": "4b12e6402beba7e1fd0152096ac81ca22ccd04265776a6ecb88be4e36ff6f3ec",
+   "size": 72807
   },
   "skinbot_gui.py": {
    "sha256": "710474e845d58d01fb9b51ba65b042d8ce024e12ffc9449bd43460694557aaad",
