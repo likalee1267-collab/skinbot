@@ -472,6 +472,8 @@ def preview_stale(code, parts, models=None):
         return False
     if cfg.get("textures", {}) != {part: str(kinds["color"]) for part, kinds in parts.items()}:
         return True
+    if cfg.get("emissive") != {part: str(kinds["emissive"]) for part, kinds in parts.items() if "emissive" in kinds}:
+        return True                                # foto fatta prima che il bot mostrasse le parti luminose
     if models is None:
         return False
     if sorted(cfg.get("models", [])) != sorted(str(m) for m in models):
@@ -737,6 +739,7 @@ def convert(code, models, parts, eye=None):
         "models": [str(m) for m in models],
         "textures": {part: str(kinds["color"]) for part, kinds in parts.items()},
         "eye": str(eye or eye_texture(code) or auto_eye_texture(code, parts)),
+        "emissive": {part: str(kinds["emissive"]) for part, kinds in parts.items() if "emissive" in kinds},
     }), encoding="utf-8")
     (folder / "surface_colors.json").unlink(missing_ok=True)
     cmd = [str(find_blender()), "-b", "-P", str(HERE / "skin_convert.py"), "--", str(cfg)]

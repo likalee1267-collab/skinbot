@@ -1,7 +1,7 @@
 {
- "version": "1.0.29",
+ "version": "1.0.30",
  "date": "2026-10-15",
- "notes": "Skin con corpo comune (es. Raven) riconosciute e colorate giuste; niente piu' teste di altre skin attaccate per errore",
+ "notes": "Anteprima: ora si vedono anche le parti luminose delle skin (es. gli occhi di Corvus)",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,16 +20,16 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "b149b019f0df80a34d913d9503125b20fec1efc06bdaa29cbb30acdbc52b47ea",
-   "size": 188
+   "sha256": "9fbb3dec4d526f15ba72d3ea7cc888e29d6031a46b36bfd26b91c5524ffa84fa",
+   "size": 155
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "a89d909df4f3ce2171692a8c32d1faae1f8bfa21c0ea61832cb9f5f318849948",
-   "size": 69161
+   "sha256": "0e125b0db9d60311cab8cde6f1f5595e4b845d070b85880c90f4bde7b6032939",
+   "size": 69499
   },
   "skinbot_gui.py": {
    "sha256": "d8636cc5c7cd450b8c777351416a11a330e94374e8d4e18c59f71c7e96d4dac1",
@@ -40,8 +40,8 @@
    "size": 14801
   },
   "skin_convert.py": {
-   "sha256": "a7552a384e59d3d0a7f9f9350ec99a203d37fda5fd5f52986e123db53e935fbd",
-   "size": 13796
+   "sha256": "ba22c49c321e5a333d8946fbfd91c2b89c189b3edc67f917e057c07f81e18adb",
+   "size": 14301
   },
   "wallbot.py": {
    "sha256": "9177a2413edceecc08617fadb8658f2b2bf1df18b5be15d0a9ec83443f940df9",

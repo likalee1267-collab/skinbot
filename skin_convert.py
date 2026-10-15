@@ -143,7 +143,7 @@ def surface_colors(objects, textures):
             for k, w in top]
 
 
-def render_preview(mesh, textures, eye, path):
+def render_preview(mesh, textures, eye, path, glow=None):
     """Foto frontale della skin posata, sfondo trasparente: serve all'interfaccia di skinbot."""
     for slot in mesh.material_slots:
         mat = slot.material
@@ -177,6 +177,11 @@ def render_preview(mesh, textures, eye, path):
             links.new(pupil.outputs["Color"], mix.inputs["B"])
             color = mix.outputs["Result"]
         links.new(color, bsdf.inputs["Base Color"])
+        if glow and part in glow and not is_eye:   # parti luminose (occhi che brillano, scritte): come in UEFN
+            light = nodes.new("ShaderNodeTexImage")
+            light.image = bpy.data.images.load(str(glow[part]), check_existing=False)
+            links.new(light.outputs["Color"], bsdf.inputs["Emission Color"])
+            bsdf.inputs["Emission Strength"].default_value = 1.5
 
     scene = bpy.context.scene
     height = mesh.dimensions[2]
@@ -287,7 +292,8 @@ def main():
 
     preview = False
     try:
-        render_preview(mesh, textures, cfg.get("eye"), out.parent / "preview.png")
+        render_preview(mesh, textures, cfg.get("eye"), out.parent / "preview.png",
+                       {k: v for k, v in cfg.get("emissive", {}).items() if Path(v).is_file()})
         preview = (out.parent / "preview.png").is_file()
     except Exception as exc:                       # la foto e' un extra: mai bloccare la conversione
         print("WARN anteprima:", exc)

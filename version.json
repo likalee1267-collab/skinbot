@@ -1,5 +1,5 @@
 {
-  "version": "1.0.29",
+  "version": "1.0.30",
   "date": "2026-10-15",
-  "notes": "Skin con corpo comune (es. Raven) riconosciute e colorate giuste; niente piu' teste di altre skin attaccate per errore"
+  "notes": "Anteprima: ora si vedono anche le parti luminose delle skin (es. gli occhi di Corvus)"
 }
