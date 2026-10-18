@@ -265,8 +265,38 @@ class Uefn:
                 raise
             return [self.call(ts, tool, **args) for ts, tool, args in calls]
 
+    def toolsets(self):
+        """I nomi dei gruppi di strumenti che questo UEFN espone (cambiano con la versione e le impostazioni)."""
+        try:
+            _, reply = self._post({"method": "tools/call", "params": {"name": "list_toolsets", "arguments": {}}})
+        except OSError:
+            return []
+        text = "".join(c.get("text", "") for c in reply.get("result", {}).get("content", []))
+        return re.findall(r"^- ([\w\.]+):", text, flags=re.M)
+
+    def check_toolsets(self):
+        """Ferma tutto con un messaggio chiaro se mancano gli strumenti editor che il bot usa."""
+        have = self.toolsets()
+        missing = [ts for ts in (T_SCENE, T_ASSET, T_MESH, T_MI, T_OBJ, T_ACTOR, T_TEX) if ts not in have]
+        if have and missing:
+            try:
+                with LOG_FILE.open("a", encoding="utf-8") as fh:
+                    fh.write("Strumenti UEFN disponibili: " + ", ".join(have) + "\n")
+            except OSError:
+                pass
+            raise BotError(
+                "Il server MCP di UEFN e' acceso ma non offre gli strumenti dell'editor che servono al bot (mancano "
+                + ", ".join(ts.rsplit(".", 1)[-1] for ts in missing) + "). Prova cosi': chiudi UEFN, riaprilo, aspetta "
+                "che la mappa sia caricata del tutto e riprova. L'elenco di quello che c'e' e' in skinbot.log: "
+                "mandalo a chi sviluppa il bot.")
+
     def preflight(self):
-        level = self.call(T_SCENE, "get_current_level") or ""
+        try:
+            level = self.call(T_SCENE, "get_current_level") or ""
+        except RuntimeError as exc:
+            if "not found" in str(exc).lower():
+                self.check_toolsets()
+            raise
         project = level.strip("/").split("/")[0]
         if not project:
             raise BotError("UEFN non ha una mappa aperta: apri il progetto e riprova.")
@@ -1276,6 +1306,10 @@ def diagnose(code):
         if f.is_file():
             lines += ["", name.upper(), "  " + f.read_text(encoding="utf-8", errors="replace")[:3000]]
     lines += ["", "TINTA SCELTA: " + str(skin_dye(code)), "STORICO: " + json.dumps(load_history().get(code, {}), ensure_ascii=False)]
+    try:
+        lines += ["", "STRUMENTI UEFN: " + ", ".join(Uefn().toolsets())]
+    except BotError:
+        lines += ["", "STRUMENTI UEFN: UEFN chiuso"]
     try:
         tail = LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines()[-60:]
         lines += ["", "ULTIME RIGHE DEL REGISTRO"] + ["  " + ln for ln in tail]

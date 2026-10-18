@@ -288,6 +288,7 @@ def build_assets(ue):
 
 def run(assets_only=False):
     ue = sb.Uefn()
+    ue.check_toolsets()
     level = ue.call(sb.T_SCENE, "get_current_level") or ""
     project = level.strip("/").split("/")[0]
     if not project:

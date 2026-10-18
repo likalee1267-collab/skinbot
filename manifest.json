@@ -1,7 +1,7 @@
 {
- "version": "1.0.32",
- "date": "2026-10-15",
- "notes": "Cocorit e skin che usano la testa di un'altra skin: restano col loro nome e le loro texture",
+ "version": "1.0.33",
+ "date": "2026-10-18",
+ "notes": "Messaggio chiaro quando UEFN non offre gli strumenti dell'editor, e il loro elenco nella diagnosi",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,24 +20,24 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "c907099d09cef30c45a6f57b3b854cfda3dd85192f8099c1432110d60f677991",
-   "size": 161
+   "sha256": "728fb00db94a848ca31462fc5110aa21074d0997a405a7b8844fadfe0deada8f",
+   "size": 167
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "4b12e6402beba7e1fd0152096ac81ca22ccd04265776a6ecb88be4e36ff6f3ec",
-   "size": 72807
+   "sha256": "0a128db44f7dab164719a0a4b5f38efaf4b9f3028eb371aa3cbe6cf525a43ca7",
+   "size": 74565
   },
   "skinbot_gui.py": {
    "sha256": "710474e845d58d01fb9b51ba65b042d8ce024e12ffc9449bd43460694557aaad",
    "size": 37608
   },
   "skinbot_setup.py": {
-   "sha256": "69e5df1019222421ab2384d868c1381871a9b08b169accaf5ca95f9510336b1b",
-   "size": 14801
+   "sha256": "da00577116c93432837f356d931115b8825604f23213b9756febed08dd42bfc7",
+   "size": 14826
   },
   "skin_convert.py": {
    "sha256": "ba22c49c321e5a333d8946fbfd91c2b89c189b3edc67f917e057c07f81e18adb",

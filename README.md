@@ -1,7 +1,7 @@
 # Skinbot
 
-Canale di aggiornamento automatico di Skinbot. Versione 1.0.32 (2026-10-15).
+Canale di aggiornamento automatico di Skinbot. Versione 1.0.33 (2026-10-18).
 
-Cocorit e skin che usano la testa di un'altra skin: restano col loro nome e le loro texture
+Messaggio chiaro quando UEFN non offre gli strumenti dell'editor, e il loro elenco nella diagnosi
 
 Per installare: scarica ed esegui `Installa Skinbot.bat`.

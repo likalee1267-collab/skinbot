@@ -1,5 +1,5 @@
 {
-  "version": "1.0.32",
-  "date": "2026-10-15",
-  "notes": "Cocorit e skin che usano la testa di un'altra skin: restano col loro nome e le loro texture"
+  "version": "1.0.33",
+  "date": "2026-10-18",
+  "notes": "Messaggio chiaro quando UEFN non offre gli strumenti dell'editor, e il loro elenco nella diagnosi"
 }
