@@ -1,7 +1,7 @@
 {
- "version": "1.0.33",
+ "version": "1.0.34",
  "date": "2026-10-18",
- "notes": "Messaggio chiaro quando UEFN non offre gli strumenti dell'editor, e il loro elenco nella diagnosi",
+ "notes": "Accende da solo Python nel progetto UEFN quando mancano gli strumenti dell'editor (errore SceneTools not found)",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,16 +20,16 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "728fb00db94a848ca31462fc5110aa21074d0997a405a7b8844fadfe0deada8f",
-   "size": 167
+   "sha256": "b6ee9f157b12ad8314b4cb22fa1b04674b0c7a5c83cf6045f317ed44bf181bde",
+   "size": 181
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "0a128db44f7dab164719a0a4b5f38efaf4b9f3028eb371aa3cbe6cf525a43ca7",
-   "size": 74565
+   "sha256": "c0d98951d4981ef0c594fbd0509919c4f8e8787024d8d9d680ffd069d5f0b744",
+   "size": 76564
   },
   "skinbot_gui.py": {
    "sha256": "710474e845d58d01fb9b51ba65b042d8ce024e12ffc9449bd43460694557aaad",

@@ -19,6 +19,7 @@ import argparse
 import contextlib
 import colorsys
 import json
+import os
 import random
 import re
 import subprocess
@@ -106,6 +107,7 @@ def disk(path):
 # ---------------------------------------------------------------- UEFN (MCP via HTTP)
 
 T_PROG = "editor_toolset.toolsets.programmatic.ProgrammaticToolset"
+T_PYTHON = "ValkyrieToolset.ValkyriePythonToolset"
 SCRIPT_HEAD = r"""import json
 P = json.loads(%r)
 
@@ -276,8 +278,24 @@ class Uefn:
 
     def check_toolsets(self):
         """Ferma tutto con un messaggio chiaro se mancano gli strumenti editor che il bot usa."""
+        need = (T_SCENE, T_ASSET, T_MESH, T_MI, T_OBJ, T_ACTOR, T_TEX)
         have = self.toolsets()
-        missing = [ts for ts in (T_SCENE, T_ASSET, T_MESH, T_MI, T_OBJ, T_ACTOR, T_TEX) if ts not in have]
+        missing = [ts for ts in need if ts not in have]
+        if missing and T_PYTHON in have:
+            # questi strumenti li carica Python, che in UEFN si accende progetto per progetto
+            # (spento di base: e' il caso di una mappa copiata su un altro PC)
+            log("Python spento in questo progetto UEFN: lo accendo")
+            try:
+                self.call(T_PYTHON, "EnablePythonInUEFN")
+            except RuntimeError as exc:
+                log(f"  non sono riuscito ad accenderlo: {exc}")
+            for _ in range(30):                   # si accende in differita, al giro dopo dell'editor
+                time.sleep(1)
+                have = self.toolsets()
+                missing = [ts for ts in need if ts not in have]
+                if not missing:
+                    log("  Python acceso, strumenti dell'editor pronti")
+                    return True
         if have and missing:
             try:
                 with LOG_FILE.open("a", encoding="utf-8") as fh:
@@ -294,9 +312,9 @@ class Uefn:
         try:
             level = self.call(T_SCENE, "get_current_level") or ""
         except RuntimeError as exc:
-            if "not found" in str(exc).lower():
-                self.check_toolsets()
-            raise
+            if "not found" not in str(exc).lower() or not self.check_toolsets():
+                raise
+            level = self.call(T_SCENE, "get_current_level") or ""
         project = level.strip("/").split("/")[0]
         if not project:
             raise BotError("UEFN non ha una mappa aperta: apri il progetto e riprova.")
@@ -1255,6 +1273,24 @@ def used_styles(code, history=None):
     return used
 
 
+def uefn_startup_lines(limit=80):
+    """Dal registro di UEFN: versione, avvio di Python e strumenti registrati (SceneTools & co. li carica Python)."""
+    log = Path(os.environ.get("LOCALAPPDATA", "")) / "UnrealEditorFortnite" / "Saved" / "Logs" / "UnrealEditorFortnite.log"
+    keep = re.compile(r"Engine Version:|LogPython|Registering Toolset (ValkyrieToolset|editor_toolset)\.")
+    out = []
+    try:
+        with log.open(encoding="utf-8", errors="replace") as fh:
+            for ln in fh:
+                if keep.search(ln):
+                    out.append(ln.rstrip()[:300])
+                    if len(out) >= limit:
+                        out.append("...")
+                        break
+    except OSError as exc:
+        return [f"registro non letto: {exc}"]
+    return out or ["nessuna riga utile (UEFN non ha ancora caricato una mappa?)"]
+
+
 def diagnose(code):
     """Scrive sul Desktop un file di testo con tutto quello che serve per capire una skin uscita male.
 
@@ -1310,6 +1346,7 @@ def diagnose(code):
         lines += ["", "STRUMENTI UEFN: " + ", ".join(Uefn().toolsets())]
     except BotError:
         lines += ["", "STRUMENTI UEFN: UEFN chiuso"]
+    lines += ["", "AVVIO DI UEFN (dal suo registro)"] + ["  " + ln for ln in uefn_startup_lines()]
     try:
         tail = LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines()[-60:]
         lines += ["", "ULTIME RIGHE DEL REGISTRO"] + ["  " + ln for ln in tail]
@@ -1500,6 +1537,7 @@ def clean_all(keep=None):
     files = old_files(keep)                        # prima di toccare qualsiasi cosa
     try:
         ue = Uefn()
+        ue.check_toolsets()
         level = ue.call(T_SCENE, "get_current_level") or ""
         configure(level.strip("/").split("/")[0])
     except BotError:

@@ -1,5 +1,5 @@
 {
-  "version": "1.0.33",
+  "version": "1.0.34",
   "date": "2026-10-18",
-  "notes": "Messaggio chiaro quando UEFN non offre gli strumenti dell'editor, e il loro elenco nella diagnosi"
+  "notes": "Accende da solo Python nel progetto UEFN quando mancano gli strumenti dell'editor (errore SceneTools not found)"
 }

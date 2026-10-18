@@ -1,7 +1,7 @@
 # Skinbot
 
-Canale di aggiornamento automatico di Skinbot. Versione 1.0.33 (2026-10-18).
+Canale di aggiornamento automatico di Skinbot. Versione 1.0.34 (2026-10-18).
 
-Messaggio chiaro quando UEFN non offre gli strumenti dell'editor, e il loro elenco nella diagnosi
+Accende da solo Python nel progetto UEFN quando mancano gli strumenti dell'editor (errore SceneTools not found)
 
 Per installare: scarica ed esegui `Installa Skinbot.bat`.
