@@ -286,7 +286,7 @@ def build_assets(ue):
     return made
 
 
-def run(assets_only=False):
+def run(assets_only=False, player_refs=False):
     ue = sb.Uefn()
     ue.check_toolsets()
     level = ue.call(sb.T_SCENE, "get_current_level") or ""
@@ -305,4 +305,9 @@ def run(assets_only=False):
     if not changed and not already:
         sb.log("  ATTENZIONE: nessun muro collegato. I colori non cambieranno: manda skinbot.log a chi sviluppa il bot.")
     sb.log("  Cielo:", connect_sky(ue))
-    sb.log("Mappa pronta: esporta una skin e premi APPLICA A UEFN.")
+    if player_refs:
+        count, made = sb.place_player_refs(ue)
+        sb.save_setting("statue", "giocatore")
+        sb.log(f"  Statue Riferimento giocatore: {count}" + (f" ({made} nuove)" if made else " (c'erano gia', aggiornate)") +
+               ". In partita mostrano la skin che indossi.")
+    sb.log("Mappa pronta: scegli una skin e premi APPLICA A UEFN.")

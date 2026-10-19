@@ -28,6 +28,8 @@ import time
 import traceback
 import urllib.parse
 import urllib.request
+
+from PIL import Image
 from pathlib import Path
 
 import wallbot as wb
@@ -59,6 +61,14 @@ STATUE_SPOTS = [
     ("Skin_Destra", 137500, RAMP_CENTER_Y + 4500, 38, 112),
 ]
 STATUE_Z = 224500
+# statue "Riferimento giocatore": il dispositivo mostra la skin di chi gioca, non serve convertire niente
+REF_FOLDER = "WallBot/Giocatore"
+REF_DEVICE = "/CRD_PlayerRef/SetupAssets/PID_Device_PlayerReference.PID_Device_PlayerReference"
+REF_TURN = 90                    # il personaggio del dispositivo guarda +X, la mesh delle statue +Y
+REF_POSE = "Hands on Hips 1"
+REF_SETTINGS = {"bShowHologram": True, "hologram Effect Strength": 0, "color": "None", "bShowBase": False,
+                "visible In Game": True, "show Player Details": False, "update Registered Player": "Always",
+                "use First Local Player Visual if Empty": True}
 DEFAULT_PALETTE = [(255, 124, 216), (255, 0, 180), (0, 255, 255)]
 # Cielo: nuvole rese monocromatiche e poi tinte, cosi' il colore regge anche sulle tinte calde.
 SKY_SCALARS = (("Saturazione", 0.0), ("Luminosita", 5.0), ("Contrasto", 0.7))
@@ -108,6 +118,7 @@ def disk(path):
 
 T_PROG = "editor_toolset.toolsets.programmatic.ProgrammaticToolset"
 T_PYTHON = "ValkyrieToolset.ValkyriePythonToolset"
+T_DEVICE = "ValkyrieToolset.DeviceToolset"
 SCRIPT_HEAD = r"""import json
 P = json.loads(%r)
 
@@ -334,7 +345,7 @@ def skin_code(stem):
 
 
 def all_models():
-    return [p for p in FP_ASSETS.rglob("*.uemodel") if "skeleton" not in p.stem.lower()]
+    return [p for p in fp_glob("*.uemodel") if "skeleton" not in p.stem.lower()]
 
 
 def raw_skins():
@@ -350,7 +361,39 @@ def base_code(code, codes):
     return max(bases, key=len) if bases else None
 
 
+_FILES_CACHE = {"at": 0.0, "value": []}
+
+
+def fp_files():
+    """Tutti i file esportati da FortnitePorting, riletti al massimo ogni 5 secondi."""
+    if time.time() - _FILES_CACHE["at"] > 5:
+        files = []
+        for root, _, names in os.walk(FP_ASSETS):
+            files += [Path(root) / n for n in names]
+        _FILES_CACHE["value"], _FILES_CACHE["at"] = files, time.time()
+    return _FILES_CACHE["value"]
+
+
+def fp_glob(pattern, root=None):
+    """Come root.rglob(pattern) (senza distinguere maiuscole), ma sull'elenco gia' letto: molto piu' veloce."""
+    import fnmatch
+    pattern = pattern.lower()
+    prefix = (str(root).lower().rstrip("\/") + os.sep) if root is not None else ""
+    return [f for f in fp_files() if fnmatch.fnmatchcase(f.name.lower(), pattern)
+            and (not prefix or str(f).lower().startswith(prefix))]
+
+
+_SKINS_CACHE = {"at": 0.0, "value": None}
+
+
 def exported_skins():
+    """Come _exported_skins, ma riletta al massimo ogni 5 secondi (l'interfaccia la chiede decine di volte)."""
+    if _SKINS_CACHE["value"] is None or time.time() - _SKINS_CACHE["at"] > 5:
+        _SKINS_CACHE["value"], _SKINS_CACHE["at"] = _exported_skins(), time.time()
+    return {code: list(files) for code, files in _SKINS_CACHE["value"].items()}
+
+
+def _exported_skins():
     """{codice: [uemodel]} di tutte le skin esportate.
 
     Le varianti di stile escono da FortnitePorting con il solo corpo: testa e accessori del viso
@@ -420,7 +463,7 @@ def body_donor(code, raw):
         return None
     # se le texture del corpo portano il nome del corpo e non della testa, la skin vera e' il corpo e la
     # testa e' solo in comune (es. Cocorit usa la testa di Corvus ma ha le sue texture T_CosmicSquatter_Body)
-    own = lambda c: any(FP_ASSETS.rglob(f"T_{c}_Body_*.png"))
+    own = lambda c: any(fp_glob(f"T_{c}_Body_*.png"))
     if own(near[0]) and not own(code):
         return None
     return near[0]
@@ -560,7 +603,7 @@ def folder_textures(code):
     """Ripiego: le texture si riconoscono dalla cartella della skin e dal suffisso, qualunque nome abbiano."""
     best = {}
     for folder in texture_folders(code):
-        for tex in sorted(folder.rglob("*.png")):
+        for tex in sorted(fp_glob("*.png", folder)):
             tokens = re.sub(r"^T_", "", tex.stem, flags=re.I).split("_")
             found = texture_kind(tokens)
             if found:
@@ -577,7 +620,7 @@ def folder_textures(code):
 
 def texture_report(code):
     """Per il log: cosa c'e' nelle cartelle texture di una skin rimasta senza colori."""
-    names = [tex.name for folder in texture_folders(code) for tex in sorted(folder.rglob("*.png"))]
+    names = [tex.name for folder in texture_folders(code) for tex in sorted(fp_glob("*.png", folder))]
     return ", ".join(names[:40]) or "nessuna texture esportata accanto al modello"
 
 
@@ -620,7 +663,7 @@ def part_textures(code, borrow=True):
     best = {}
     # "SpruceBark" non deve prendersi le texture di "SpruceBark_Bob"
     longer = [c.lower() for c in exported_skins() if c.lower().startswith(code.lower() + "_")]
-    for tex in sorted(FP_ASSETS.rglob(f"T_{code}_*.png")):
+    for tex in sorted(fp_glob(f"T_{code}_*.png")):
         match = re.match(rf"^T_{re.escape(code)}_(.+)$", tex.stem, flags=re.I)
         if not match or any(tex.stem.lower().startswith(f"t_{c}_") for c in longer):
             continue
@@ -689,6 +732,15 @@ def load_settings():
         return json.loads(SETTINGS.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
+
+
+def save_setting(key, value):
+    data = load_settings()
+    data[key] = value
+    try:
+        SETTINGS.write_text(json.dumps(data), encoding="utf-8")
+    except OSError:
+        pass
 
 
 def skin_dye(code):
@@ -822,7 +874,7 @@ def flipbook_sheets(code):
     sheets = {}
     for name, aliases in (("Brows", ("Brows",)), ("Eyes", ("Eyes",)), ("Mouths", ("Mouths", "Mouth"))):
         for alias in aliases:
-            found = sorted(FP_ASSETS.rglob(f"T_{code}_Flipbook_{alias}.png"))
+            found = sorted(fp_glob(f"T_{code}_Flipbook_{alias}.png"))
             if found:
                 with Image.open(found[0]) as img:
                     sheets[name] = [str(found[0]), flipbook_grid(img.convert("RGBA"))]
@@ -830,7 +882,7 @@ def flipbook_sheets(code):
     if not ("Eyes" in sheets or "Mouths" in sheets):
         return {}
     for name in ("Eye", "Iris", "Eyes_Iris"):     # l'iride che il gioco mette nella parte verde degli occhi
-        found = sorted(FP_ASSETS.rglob(f"T_{code}_{name}.png"))
+        found = sorted(fp_glob(f"T_{code}_{name}.png"))
         if found:
             sheets["Iris"] = [str(found[0]), 1]
             break
@@ -848,7 +900,7 @@ def eye_texture(code):
         return None
     for owner in (code, base_code(code, raw_skins())):
         for name in EYE_TEXTURE_NAMES if owner else ():
-            found = sorted(FP_ASSETS.rglob(f"T_{owner}_{name}.png"))
+            found = sorted(fp_glob(f"T_{owner}_{name}.png"))
             if found:
                 return found[0]
     return None
@@ -1010,6 +1062,176 @@ def resolve_names(codes):
         except OSError:
             pass
     return names
+
+
+# ---------------------------------------------------------------- catalogo di Fortnite (senza export)
+
+CATALOG_FILE = HERE / "catalogo.json"
+CATALOG_API = "https://fortnite-api.com/v2/cosmetics/br/search/all"
+
+
+def _api(params):
+    url = CATALOG_API + "?" + urllib.parse.urlencode(params)
+    req = urllib.request.Request(url, headers={"User-Agent": "skinbot"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode("utf-8")).get("data") or []
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:                        # nessun risultato
+            return []
+        raise BotError(f"Catalogo di Fortnite non raggiungibile ({exc.code}).")
+    except (OSError, ValueError) as exc:
+        raise BotError(f"Catalogo di Fortnite non raggiungibile ({exc}). Controlla la connessione.")
+
+
+def catalog_code(cosmetic_id):
+    """Stesso codice che usa FortnitePorting dove si puo' (Character_AcidWhale -> AcidWhale)."""
+    return re.sub(r"^Character_", "", cosmetic_id, flags=re.I)
+
+
+def search_catalog(query, limit=40):
+    """Skin (outfit) del gioco che contengono `query` nel nome, in italiano o in inglese."""
+    query = query.strip()
+    if len(query) < 2:
+        return []
+    found = {}
+    for lang in ("it", "en"):
+        for item in _api({"name": query, "matchMethod": "contains", "type": "outfit",
+                          "language": "it", "searchLanguage": lang}):
+            images = item.get("images") or {}
+            image = images.get("featured") or images.get("icon")
+            if image and item["id"] not in found:
+                found[item["id"]] = {"id": item["id"], "code": catalog_code(item["id"]), "name": item.get("name") or "",
+                                     "rarity": (item.get("rarity") or {}).get("displayValue") or "",
+                                     "set": (item.get("set") or {}).get("value") or "",
+                                     "added": item.get("added") or "", "image": image}
+    q = query.lower()
+    # prima i nomi che iniziano con la ricerca, poi le skin piu' nuove
+    newest = sorted(found.values(), key=lambda s: s["added"], reverse=True)
+    return sorted(newest, key=lambda s: not s["name"].lower().startswith(q))[:limit]
+
+
+OUTFITS_FILE = HERE / "cache" / "outfits.json"
+ICONS_DIR = HERE / "cache" / "icons"
+RARITY_COLORS = {                                  # sfondo delle icone, come nel gioco
+    "common": ("#8a8a8a", "#4d4d4d"), "uncommon": ("#69bb1e", "#175117"), "rare": ("#2cc1ff", "#143977"),
+    "epic": ("#c359ff", "#4b2483"), "legendary": ("#ea8d23", "#78371d"), "mythic": ("#ffd84a", "#7a5a10"),
+    "marvel": ("#c53334", "#761b1b"), "dc": ("#5475c7", "#243461"), "icon": ("#36b7b7", "#256b6b"),
+    "gaminglegends": ("#6a5ae0", "#312497"), "starwars": ("#2a5aa8", "#081737"), "dark": ("#fb22df", "#520c6f"),
+    "frozen": ("#c4dff7", "#5a8fc2"), "lava": ("#d19635", "#5f1508"), "shadow": ("#717171", "#191919"),
+    "slurp": ("#53f0ff", "#126e8a"),
+}
+_JUNK = re.compile(r"^(Set_|TBD|\[|null)", re.I)
+
+
+def load_outfits(max_age=12 * 3600):
+    """Tutte le skin del gioco (nome italiano e inglese, rarita', foto), dal catalogo; cache di 12 ore."""
+    try:
+        if time.time() - OUTFITS_FILE.stat().st_mtime < max_age:
+            return json.loads(OUTFITS_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        pass
+    try:
+        it = _api({"type": "outfit", "language": "it"})
+        en = {i["id"]: i.get("name") or "" for i in _api({"type": "outfit", "language": "en"})}
+    except BotError:
+        try:                                       # senza rete: l'ultima lista scaricata
+            return json.loads(OUTFITS_FILE.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            raise
+    outfits = []
+    for item in it:
+        images = item.get("images") or {}
+        name = item.get("name") or ""
+        small = images.get("smallIcon") or images.get("icon")
+        if not small or not name or _JUNK.match(name) or "_NPC_" in item["id"].upper():
+            continue
+        rarity = item.get("rarity") or {}
+        series = item.get("series") or {}
+        outfits.append({"id": item["id"], "code": catalog_code(item["id"]), "name": name,
+                        "name_en": en.get(item["id"], ""), "rarity": rarity.get("displayValue") or "",
+                        "rv": rarity.get("value") or "", "colors": ["#" + c[:6] for c in (series.get("colors") or [])[:2]],
+                        "set": (item.get("set") or {}).get("value") or "", "added": item.get("added") or "",
+                        "small": small, "image": images.get("featured") or images.get("icon") or small})
+    outfits.sort(key=lambda o: o["added"], reverse=True)
+    OUTFITS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    OUTFITS_FILE.write_text(json.dumps(outfits, ensure_ascii=False), encoding="utf-8")
+    return outfits
+
+
+def filter_outfits(outfits, query):
+    """Le skin il cui nome (italiano o inglese), set o codice contiene `query`; prima chi inizia cosi'."""
+    q = query.strip().lower()
+    if not q:
+        return outfits
+    hits = [o for o in outfits if q in o["name"].lower() or q in o["name_en"].lower()
+            or q in o["set"].lower() or q in o["code"].lower()]
+    return sorted(hits, key=lambda o: not (o["name"].lower().startswith(q) or o["name_en"].lower().startswith(q)))
+
+
+def outfit_icon(item):
+    """L'icona piccola della skin (scaricata una volta sola)."""
+    path = ICONS_DIR / (item["id"].lower() + ".png")
+    if not path.is_file():
+        req = urllib.request.Request(item["small"], headers={"User-Agent": "skinbot"})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = resp.read()
+        ICONS_DIR.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+    return path
+
+
+def load_catalog():
+    try:
+        return json.loads(CATALOG_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def catalog_skins():
+    """{codice: info} delle skin prese dal catalogo che hanno ancora foto e colori sul PC."""
+    return {code: info for code, info in load_catalog().items()
+            if (HERE / "skins" / code / "surface_colors.json").is_file()}
+
+
+def image_weights(img):
+    """[r, g, b, peso] dei pixel pieni di una foto scontornata (l'ombra semitrasparente non conta)."""
+    from collections import Counter
+    small = img.convert("RGBA").resize((128, 128), Image.BOX)
+    counts = Counter()
+    for r, g, b, a in small.getdata():
+        if a > 200:
+            counts[(r >> 3, g >> 3, b >> 3)] += 1
+    return [[r * 8 + 4, g * 8 + 4, b * 8 + 4, n] for (r, g, b), n in counts.items()]
+
+
+def add_catalog_skin(item):
+    """Scarica la foto della skin dal catalogo e ne misura i colori: pronta per muri e cielo."""
+    import io
+    code = item["code"]
+    req = urllib.request.Request(item["image"], headers={"User-Agent": "skinbot"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            img = Image.open(io.BytesIO(resp.read())).convert("RGBA")
+    except (OSError, ValueError) as exc:
+        raise BotError(f"Non riesco a scaricare la foto di {item['name']} ({exc}).")
+    box = img.getchannel("A").point(lambda a: 255 if a > 200 else 0).getbbox()
+    if box:
+        img = img.crop(box)
+    folder = HERE / "skins" / code
+    folder.mkdir(parents=True, exist_ok=True)
+    img.save(folder / "preview.png")
+    (folder / "surface_colors.json").write_text(json.dumps(image_weights(img)))
+    catalog = load_catalog()
+    catalog[code] = {k: item[k] for k in ("id", "name", "rarity", "set", "image")}
+    CATALOG_FILE.write_text(json.dumps(catalog, indent=1, ensure_ascii=False), encoding="utf-8")
+    names = load_names()
+    names[code] = {"name": item["name"], "set": item["set"]}
+    try:
+        NAMES_FILE.write_text(json.dumps(names, indent=1, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass
+    return code
 
 
 def display_name(code, names=None):
@@ -1245,6 +1467,104 @@ def place_statues(ue, mesh, size_m=None):
     return len(STATUE_SPOTS), "create" + note
 
 
+def statue_mode():
+    """'modello' (la mesh convertita), 'giocatore' (Riferimento giocatore) o 'off'."""
+    mode = load_settings().get("statue", "modello")
+    return mode if mode in ("modello", "giocatore", "off") else "modello"
+
+
+def _folder(ue, folder):
+    try:
+        return ue.call(T_SCENE, "get_actors_in_folder", folder_path=folder, recursive=False) or []
+    except RuntimeError:                           # la cartella non esiste ancora
+        return []
+
+
+def show_mesh_statues(ue, visible):
+    """Accende o spegne le statue a mesh senza cancellarle (posizioni e scale messe a mano restano)."""
+    statues = _folder(ue, STATUE_FOLDER)
+    calls = []
+    for desc in statues:
+        calls.append((T_OBJ, "set_properties", {"instance": {"refPath": desc["actorPath"] + ".StaticMeshComponent0"},
+                                                "values": json.dumps({"bVisible": visible, "bHiddenInGame": not visible})}))
+        calls.append((T_SCENE, "save_actor", {"actor": {"refPath": desc["actorPath"]}}))
+    ue.batch(calls)
+    return len(statues)
+
+
+def remove_player_refs(ue):
+    refs = [d for d in _folder(ue, REF_FOLDER) if (d.get("label") or "").startswith("Giocatore_")]
+    ue.batch([(T_SCENE, "remove_from_scene", {"actor": {"refPath": d["actorPath"]}}) for d in refs])
+    return len(refs)
+
+
+def place_player_refs(ue, pose=None):
+    """Tre Riferimento giocatore giganti al posto delle statue: in partita mostrano la skin di chi gioca.
+
+    Prendono posizione, scala e direzione dalle statue a mesh (se ci sono), che vengono spente.
+    """
+    settings = dict(REF_SETTINGS, **{"hologram Animation": pose or load_settings().get("posa", REF_POSE)})
+    statues = {d.get("label"): d for d in _folder(ue, STATUE_FOLDER)}
+    spots = []
+    for spot in STATUE_SPOTS:
+        xform = spot_transform(spot)
+        if spot[0] in statues:
+            try:
+                now = ue.call(T_ACTOR, "get_actor_transform", actor={"refPath": statues[spot[0]]["actorPath"]})
+                if now and now.get("location"):
+                    xform = now
+            except RuntimeError:
+                pass
+        xform = json.loads(json.dumps(xform))
+        xform["rotation"]["yaw"] = (xform["rotation"].get("yaw", 0) + REF_TURN) % 360
+        spots.append(("Giocatore_" + spot[0].split("_", 1)[1], xform))
+    show_mesh_statues(ue, False)
+    have = {d.get("label"): d["actorPath"] for d in _folder(ue, REF_FOLDER)}
+    made = 0
+    for label, xform in spots:
+        actor = have.get(label)
+        if not actor:
+            try:
+                placed = ue.call(T_DEVICE, "PlaceDevice", assetPath={"refPath": REF_DEVICE}, transform=xform)
+            except RuntimeError as exc:
+                raise BotError("Non riesco a piazzare il Riferimento giocatore in UEFN "
+                               f"({str(exc)[:160]}). Rimetti 'Statue: Modello'.")
+            actor = placed["refPath"] if isinstance(placed, dict) else placed
+            made += 1
+        ref_actor = {"refPath": actor}
+        calls = [(T_ACTOR, "set_actor_transform", {"actor": ref_actor, "xform": xform}),   # PlaceDevice ignora lo yaw
+                 (T_OBJ, "set_properties", {"instance": ref_actor, "values": json.dumps(settings)}),
+                 # il cono di luce sotto i piedi: con la statua gigante sembra un faro
+                 (T_OBJ, "set_properties", {"instance": {"refPath": actor + ".Hologram_Cone"},
+                                            "values": json.dumps({"bVisible": False, "bHiddenInGame": True})})]
+        if label not in have:
+            calls += [(T_ACTOR, "set_label", {"actor": ref_actor, "label": label}),
+                      (T_SCENE, "set_actor_folder", {"actor": ref_actor, "folder_path": REF_FOLDER})]
+        calls.append((T_SCENE, "save_actor", {"actor": ref_actor}))
+        ue.batch(calls)
+    linked = link_player_refs(ue)
+    if not linked:
+        log("  ATTENZIONE: nella mappa non trovo Player Spawner: le statue restano vuote finche' "
+            "un giocatore non viene registrato (evento 'Register Player').")
+    return len(spots), made
+
+
+def link_player_refs(ue):
+    """Ogni Player Spawner registra chi nasce sulle tre statue: senza un giocatore registrato restano invisibili."""
+    refs = [d["actorPath"] for d in _folder(ue, REF_FOLDER) if (d.get("label") or "").startswith("Giocatore_")]
+    try:
+        found = ue.call(T_SCENE, "find_actors", collision_channels=[], name="Spawner") or []
+    except RuntimeError:
+        found = []
+    spawners = sorted({d["actorPath"] for d in found if "Player_Spawner" in d["actorPath"]})
+    calls = [(T_DEVICE, "AddEventBinding", {"sourceDevicePath": {"refPath": s}, "sourceEvent": "On Player Spawned",
+                                            "targetDevicePath": {"refPath": r}, "targetFunction": "Register Player"})
+             for s in spawners for r in refs]
+    calls += [(T_SCENE, "save_actor", {"actor": {"refPath": a}}) for a in refs + spawners]
+    ue.batch(calls)
+    return len(spawners)
+
+
 # ---------------------------------------------------------------- flusso
 
 def link_map(ue):
@@ -1368,7 +1688,7 @@ def diagnose(code):
         from PIL import Image
         for folder in texture_folders(code):
             lines.append(f"  [{folder.relative_to(FP_ASSETS)}]")
-            for f in sorted(folder.rglob("*.png")):
+            for f in sorted(fp_glob("*.png", folder)):
                 try:
                     with Image.open(f) as im:
                         mean = im.convert("RGB").resize((8, 8)).resize((1, 1)).getpixel((0, 0))
@@ -1452,10 +1772,13 @@ def run_skin(code, args):
 
 def _run_skin(code, args):
     skins = exported_skins()
-    if not skins:
+    if not skins and not (code and code in catalog_skins()):
         raise BotError(f"Nessuna skin esportata in {FP_ASSETS}. In FortnitePorting esporta su 'Assets Folder'.")
     code = code or latest_code(skins)
     match = [c for c in skins if c.lower() == code.lower()]
+    catalog = catalog_skins()
+    if not match and code in catalog:
+        return _run_catalog(code, args)
     if not match:
         raise BotError(f"Skin '{code}' non trovata. Esportate: {', '.join(sorted(skins))}")
     code, models = match[0], skins[match[0]]
@@ -1476,6 +1799,9 @@ def _run_skin(code, args):
     ue = Uefn()                                   # prima di Blender: inutile convertire se UEFN e' chiuso
     ue.preflight()
     started = time.time()
+    mode = "off" if args.no_statues else (getattr(args, "statue", None) or statue_mode())
+    if mode == "giocatore":
+        return _run_player_ref(ue, code, parts, args, started)
     eye = eye_texture(code)
     generated = eye is None
     if generated:
@@ -1500,14 +1826,58 @@ def _run_skin(code, args):
         log("  Disegno esagoni:", apply_layout(ue, args.layout))
     link_map(ue)
     log("  Rampa e cielo ricolorati" if apply_theme(ue, colors) else "  Rampa ricolorata (cielo non collegato)")
-    if not args.no_statues:
+    if mode == "modello":
         count, what = place_statues(ue, mesh, info.get("size_m"))
         log(f"  Statue {what}: {count}")
+        gone = remove_player_refs(ue)
+        if gone:
+            show_mesh_statues(ue, True)
+            log(f"  Tolti {gone} Riferimento giocatore, statue a mesh riaccese")
+    _finish(ue, code, colors, args, started)
+
+
+def _run_catalog(code, args):
+    """Skin presa dal catalogo di Fortnite: colori dalla foto ufficiale, statue = Riferimento giocatore."""
+    log(f"Skin: {display_name(code)} [{code}]   (dal catalogo di Fortnite, niente export)")
+    if args.dry_run:
+        colors, origin = choose_palette(code, {}, args.colors)
+        log("  Palette (%s): base=%s  A=%s  B=%s" % (origin, *(wb.to_hex(c) for c in colors)))
+        return
+    ue = Uefn()
+    ue.preflight()
+    started = time.time()
+    if args.no_statues:
+        colors, _ = choose_palette(code, {}, args.colors)
+        link_map(ue)
+        log("  Rampa e cielo ricolorati" if apply_theme(ue, colors) else "  Rampa ricolorata (cielo non collegato)")
+        return _finish(ue, code, colors, args, started)
+    if (getattr(args, "statue", None) or statue_mode()) == "modello":
+        log("  Questa skin non e' esportata: niente modello, metto il Riferimento giocatore")
+    return _run_player_ref(ue, code, {}, args, started)
+
+
+def _finish(ue, code, colors, args, started):
     scenery(ue, getattr(args, "cascate", None))
     style = getattr(args, "style", None) or ("A mano" if args.colors else "Automatico")
     record_use(code, style, colors, args.layout)
     log(f"  Segnato nello storico: {display_name(code)} con lo stile {style}")
     log(f"Fatto e salvato in {time.time() - started:.0f} secondi.")
+
+
+def _run_player_ref(ue, code, parts, args, started):
+    """Statue = Riferimento giocatore: dalla skin servono solo i colori per muri e cielo."""
+    colors, origin = choose_palette(code, parts, args.colors)
+    if origin == "misurata sulla superficie della skin" and code in catalog_skins():
+        origin = "dalla foto ufficiale"
+    log("  Palette (%s): base=%s  A=%s  B=%s" % (origin, *(wb.to_hex(c) for c in colors)))
+    if args.layout:
+        log("  Disegno esagoni:", apply_layout(ue, args.layout))
+    link_map(ue)
+    log("  Rampa e cielo ricolorati" if apply_theme(ue, colors) else "  Rampa ricolorata (cielo non collegato)")
+    count, made = place_player_refs(ue)
+    log(f"  Statue Riferimento giocatore: {count}" + (f" ({made} nuove)" if made else "") +
+        ". In partita mostrano la skin che indossi: mettila nell'armadietto prima di entrare.")
+    _finish(ue, code, colors, args, started)
 
 
 def safe_run(code, args):
@@ -1652,11 +2022,11 @@ def safe_clean():
     return False
 
 
-def safe_setup():
+def safe_setup(player_refs=False):
     import skinbot_setup
     try:
         with quiet_digest():
-            skinbot_setup.run()
+            skinbot_setup.run(player_refs=player_refs)
         return True
     except BotError as exc:
         log("ERRORE:", exc)

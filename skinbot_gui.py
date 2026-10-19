@@ -1,5 +1,6 @@
 """Interfaccia di skinbot. Avvio: doppio click su applica_skin.bat (o `python skinbot_gui.py`)."""
 import argparse
+import concurrent.futures
 import json
 import queue
 import random
@@ -36,6 +37,207 @@ def readable_on(rgb):
 
 def srgb(lin):
     return tuple(round(255 * max(0.0, min(1.0, lin[k])) ** (1 / 2.2)) for k in "rgb")
+
+
+class SkinPicker:
+    """Griglia di icone delle skin di Fortnite (come FortnitePorting): scrivi per filtrare, clic per usarla."""
+    TILE, GAP, COLS, PAGE = 84, 8, 8, 160
+
+    def __init__(self, app, query=""):
+        self.app = app
+        self.outfits, self.shown, self.photos, self.items, self.tones = [], [], {}, {}, {}
+        self.icons = queue.Queue()
+        self.pool = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+        self.asked = set()
+        self.limit = self.PAGE
+        self.after_id = None
+        win = self.win = tk.Toplevel(app.root)
+        win.title("Scegli la skin")
+        win.configure(bg=BG)
+        width = self.COLS * (self.TILE + self.GAP) + self.GAP + 40
+        win.geometry(f"{width}x660+{app.root.winfo_rootx() + 40}+{app.root.winfo_rooty() + 60}")
+        win.transient(app.root)
+        win.protocol("WM_DELETE_WINDOW", self.close)
+
+        top = tk.Frame(win, bg=BG)
+        top.pack(fill="x", padx=12, pady=(12, 8))
+        tk.Label(top, text="Cerca", font=FONT_B, bg=BG, fg=TEXT).pack(side="left", padx=(0, 8))
+        self.query = tk.StringVar(value=query)
+        entry = tk.Entry(top, textvariable=self.query, font=("Segoe UI", 12), bg=PANEL, fg=TEXT,
+                         insertbackground=TEXT, relief="flat")
+        entry.pack(side="left", fill="x", expand=True, ipady=7)
+        entry.focus_set()
+        entry.bind("<Return>", lambda e: self.pick(self.shown[0]) if self.shown else None)
+        self.count = tk.Label(top, text="carico il catalogo...", font=FONT, bg=BG, fg=MUTED)
+        self.count.pack(side="left", padx=(10, 0))
+        self.query.trace_add("write", lambda *a: self.schedule())
+
+        frame = tk.Frame(win, bg=BG)
+        frame.pack(fill="both", expand=True, padx=(12, 4), pady=(0, 6))
+        self.canvas = tk.Canvas(frame, bg=PANEL, highlightthickness=0)
+        bar = tk.Scrollbar(frame, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.on_scroll(bar))
+        bar.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.canvas.bind("<MouseWheel>", lambda e: self.canvas.yview_scroll(-1 if e.delta > 0 else 1, "units"))
+        self.canvas.bind("<Motion>", self.hover)
+        self.canvas.bind("<Leave>", lambda e: self.tip.place_forget())
+        self.canvas.bind("<Button-1>", self.click)
+        self.tip = tk.Label(self.canvas, text="", font=FONT_B, bg="#151821", fg=TEXT, padx=8, pady=4, justify="left")
+        self.status = tk.Label(win, text="Clic su una skin per usarla", font=FONT, bg=BG, fg=MUTED, anchor="w")
+        self.status.pack(fill="x", padx=14, pady=(0, 8))
+
+        def load():
+            try:
+                outfits = sb.load_outfits()
+            except sb.BotError as exc:
+                outfits = str(exc)
+            self.icons.put(("outfits", outfits))
+        threading.Thread(target=load, daemon=True).start()
+        self.poll()
+
+    def on_scroll(self, bar):
+        def moved(first, last):
+            bar.set(first, last)
+            if float(last) > 0.97 and self.limit < len(self.matches()):   # in fondo: altre skin
+                self.limit += self.PAGE
+                self.draw(keep=True)
+            self.request_visible()
+        return moved
+
+    def close(self):
+        self.pool.shutdown(wait=False, cancel_futures=True)
+        self.win.destroy()
+
+    def matches(self):
+        return sb.filter_outfits(self.outfits, self.query.get())
+
+    def schedule(self):
+        if self.after_id:
+            self.win.after_cancel(self.after_id)
+        self.after_id = self.win.after(200, lambda: self.draw())
+
+    def tile_at(self, i):
+        step = self.TILE + self.GAP
+        return self.GAP + (i % self.COLS) * step, self.GAP + (i // self.COLS) * step
+
+    def draw(self, keep=False):
+        if not keep:
+            self.limit = self.PAGE
+            self.canvas.yview_moveto(0)
+        found = self.matches()
+        self.shown = found[:self.limit]
+        self.canvas.delete("all")
+        self.items = {}
+        for i, item in enumerate(self.shown):
+            x, y = self.tile_at(i)
+            top, bottom = (item["colors"] + [None, None])[:2] if item["colors"] else (None, None)
+            light, dark = (top, bottom or top) if top else sb.RARITY_COLORS.get(item["rv"], ("#3a7bd5", "#1c3f7a"))
+            self.tones[item["id"]] = (light, dark)
+            half = self.TILE // 2
+            self.canvas.create_rectangle(x, y, x + self.TILE, y + self.TILE, fill=dark, outline="")
+            photo = self.photos.get(item["id"])
+            img = self.canvas.create_image(x + half, y + half, image=photo) if photo else \
+                self.canvas.create_image(x + half, y + half)
+            self.canvas.create_rectangle(x, y, x + self.TILE, y + self.TILE, outline="", width=3, tags=f"sel{i}")
+            self.items[item["id"]] = img
+        rows = (len(self.shown) + self.COLS - 1) // self.COLS
+        self.canvas.configure(scrollregion=(0, 0, self.COLS * (self.TILE + self.GAP) + self.GAP,
+                                            rows * (self.TILE + self.GAP) + self.GAP))
+        more = f" (prime {len(self.shown)}, scorri per le altre)" if len(found) > len(self.shown) else ""
+        self.count.config(text=f"{len(found)} skin{more}")
+        self.win.after(30, self.request_visible)
+
+    def request_visible(self):
+        """Scarica solo le icone che si vedono (piu' una riga sotto); quelle gia' scaricate restano sul PC."""
+        if not self.shown:
+            return
+        step = self.TILE + self.GAP
+        y0 = self.canvas.canvasy(0)
+        y1 = y0 + self.canvas.winfo_height() + step
+        first = max(0, int(y0 // step) * self.COLS)
+        last = min(len(self.shown), int(y1 // step + 1) * self.COLS)
+        for item in self.shown[first:last]:
+            if item["id"] in self.asked:
+                continue
+            self.asked.add(item["id"])
+
+            def work(item=item):
+                try:
+                    self.icons.put(("icon", item["id"], sb.outfit_icon(item)))
+                except Exception:                  # icona mancante: resta il riquadro colorato
+                    pass
+            self.pool.submit(work)
+
+    def poll(self):
+        if not self.win.winfo_exists():
+            return
+        try:
+            for _ in range(40):
+                msg = self.icons.get_nowait()
+                if msg[0] == "outfits":
+                    if isinstance(msg[1], str):
+                        self.count.config(text="")
+                        self.status.config(text=msg[1], fg=BAD)
+                    else:
+                        self.outfits = msg[1]
+                        self.draw()
+                    continue
+                _, oid, path = msg
+                try:
+                    icon = Image.open(path).convert("RGBA").resize((self.TILE, self.TILE), Image.LANCZOS)
+                except OSError:
+                    continue
+                self.photos[oid] = ImageTk.PhotoImage(self.backdrop(oid, icon))
+                if oid in self.items:
+                    self.canvas.itemconfig(self.items[oid], image=self.photos[oid])
+        except queue.Empty:
+            pass
+        self.win.after(60, self.poll)
+
+    def backdrop(self, oid, icon):
+        """Icona sul suo sfondo di rarita': chiaro in alto al centro, scuro in basso (come nel gioco)."""
+        light, dark = (tuple(int(c[i:i + 2], 16) for i in (1, 3, 5)) for c in self.tones.get(oid, ("#3a7bd5", "#1c3f7a")))
+        n = self.TILE
+        mask = Image.radial_gradient("L").resize((n * 2, n * 2)).crop((n // 2, n // 4, n // 2 + n, n // 4 + n))
+        bg = Image.composite(Image.new("RGB", (n, n), dark), Image.new("RGB", (n, n), light), mask).convert("RGBA")
+        bg.alpha_composite(icon)
+        return bg
+
+    def index_at(self, event):
+        step = self.TILE + self.GAP
+        x, y = self.canvas.canvasx(event.x) - self.GAP, self.canvas.canvasy(event.y) - self.GAP
+        if x < 0 or y < 0 or x % step > self.TILE or y % step > self.TILE:
+            return None
+        col, row = int(x // step), int(y // step)
+        i = row * self.COLS + col
+        return i if col < self.COLS and i < len(self.shown) else None
+
+    def hover(self, event):
+        i = self.index_at(event)
+        self.canvas.itemconfig("all_sel", outline="")
+        for tag in getattr(self, "_lit", []):
+            self.canvas.itemconfig(tag, outline="")
+        if i is None:
+            self.tip.place_forget()
+            return
+        self.canvas.itemconfig(f"sel{i}", outline=TEXT)
+        self._lit = [f"sel{i}"]
+        item = self.shown[i]
+        other = f"  ({item['name_en']})" if item["name_en"] and item["name_en"] != item["name"] else ""
+        self.tip.config(text=f"{item['name']}{other}\n{item['rarity']}" + (f"  -  {item['set']}" if item["set"] else ""))
+        x = min(event.x + 14, self.canvas.winfo_width() - self.tip.winfo_reqwidth() - 4)
+        self.tip.place(x=max(4, x), y=event.y + 18)
+        self.status.config(text=f"{item['name']}{other}   -   clic per usarla", fg=TEXT)
+
+    def click(self, event):
+        i = self.index_at(event)
+        if i is not None:
+            self.pick(self.shown[i])
+
+    def pick(self, item):
+        self.close()
+        self.app.take_outfit(item)
 
 
 class App:
@@ -112,12 +314,25 @@ class App:
         left = tk.Frame(body, bg=PANEL, width=250)
         left.pack(side="left", fill="y")
         left.pack_propagate(False)
-        tk.Label(left, text="Skin esportate", font=FONT_B, bg=PANEL, fg=TEXT).pack(anchor="w", padx=12, pady=(12, 6))
+        tk.Label(left, text="Cerca una skin di Fortnite", font=FONT_B, bg=PANEL, fg=TEXT).pack(anchor="w", padx=12, pady=(12, 4))
+        find = tk.Frame(left, bg=PANEL)
+        find.pack(fill="x", padx=10, pady=(0, 8))
+        self.search_var = tk.StringVar()
+        entry = tk.Entry(find, textvariable=self.search_var, font=FONT, bg=ROW, fg=TEXT, insertbackground=TEXT,
+                         relief="flat")
+        entry.pack(side="left", fill="x", expand=True, ipady=5)
+        entry.bind("<Return>", lambda e: self.search())
+        self.search_btn = self._button(find, "Sfoglia", self.search, small=True)
+        self.search_btn.pack(side="left", padx=(6, 0))
+        tk.Label(left, text="Le tue skin", font=FONT_B, bg=PANEL, fg=TEXT).pack(anchor="w", padx=12, pady=(4, 6))
         # i tasti in fondo si impacchettano prima dell'elenco: cosi' restano visibili anche con tante skin
         clean = self._button(left, "Tieni solo l'ultima skin", self.clean_all, small=True)
         clean.config(fg="#ff8a80")
         clean.pack(side="bottom", fill="x", padx=10, pady=(0, 10))
         self._button(left, "Prepara questa mappa", self.setup_map, small=True).pack(side="bottom", fill="x", padx=10, pady=(0, 6))
+        refs = self._button(left, "Prepara mappa + Riferimenti giocatore", lambda: self.setup_map(player_refs=True), small=True)
+        refs.config(fg=OK)
+        refs.pack(side="bottom", fill="x", padx=10, pady=(0, 6))
         self._button(left, "Aggiorna elenco", self.refresh, small=True).pack(side="bottom", fill="x", padx=10, pady=(0, 6))
         self._button(left, "Storico delle skin fatte", self.show_history, small=True).pack(side="bottom", fill="x", padx=10, pady=(0, 6))
         self._button(left, "Skin uscita male? Diagnosi", self.diagnose, small=True).pack(side="bottom", fill="x", padx=10, pady=6)
@@ -188,7 +403,7 @@ class App:
         self.auto_lbl = tk.Label(act, text="", font=FONT_B, padx=14, pady=11, cursor="hand2", bg=PANEL)
         self.auto_lbl.pack(side="left", padx=10)
         self.auto_lbl.bind("<Button-1>", lambda e: self.toggle_auto())
-        self.statues_on = True
+        self.statue_mode = sb.statue_mode()       # modello / giocatore / off
         self.statues_lbl = tk.Label(act, text="", font=FONT_B, padx=14, pady=11, cursor="hand2", bg=PANEL)
         self.statues_lbl.pack(side="left")
         self.statues_lbl.bind("<Button-1>", lambda e: self.toggle_statues())
@@ -216,21 +431,23 @@ class App:
     def refresh(self):
         # i pezzi sciolti (braccia, teste, accessori senza corpo) non sono skin: fuori dall'elenco
         self.skins = {c: f for c, f in sb.exported_skins().items() if sb.has_body(f)}
+        self.catalog = {c: i for c, i in sb.catalog_skins().items() if c not in self.skins}
         newest = sb.latest_code(self.skins)
         history = sb.load_history()
         for child in self.list_box.winfo_children():
             child.destroy()
         self.rows = {}
         self.name_lbls = {}
-        if not self.skins:
-            tk.Label(self.list_box, text="Nessuna skin.\nEsporta da FortnitePorting\nsu Assets Folder.", font=FONT,
+        if not self.skins and not self.catalog:
+            tk.Label(self.list_box, text="Nessuna skin.\nCercala qui sopra, oppure\nesportala da FortnitePorting.", font=FONT,
                      bg=PANEL, fg=MUTED, justify="left").pack(anchor="w", padx=8, pady=8)
-        for code in sorted(self.skins, key=lambda c: (not sb.has_body(self.skins[c]), c.lower())):
+        everything = sorted(self.skins, key=lambda c: c.lower()) + sorted(self.catalog, key=lambda c: c.lower())
+        for code in everything:
             row = tk.Frame(self.list_box, bg=ROW, cursor="hand2")
             row.pack(fill="x", pady=1)
             dots = tk.Canvas(row, width=46, height=30, bg=ROW, highlightthickness=0)
             dots.pack(side="left", padx=(8, 4))
-            complete = sb.has_body(self.skins[code])
+            complete = code in self.catalog or sb.has_body(self.skins[code])
             name = tk.Label(row, text=sb.display_name(code, self.names), font=FONT_B if complete else FONT, bg=ROW,
                             fg=TEXT if complete else MUTED, anchor="w")
             name.pack(side="left", fill="x", expand=True)
@@ -240,13 +457,15 @@ class App:
                 tk.Label(row, text=f"fatta x{done}", font=("Segoe UI", 8), bg=ROW, fg=WARN).pack(side="right", padx=8)
             elif code == newest:
                 tk.Label(row, text="nuova", font=("Segoe UI", 8), bg=ROW, fg=OK).pack(side="right", padx=8)
+            elif code in self.catalog:
+                tk.Label(row, text="catalogo", font=("Segoe UI", 8), bg=ROW, fg=MUTED).pack(side="right", padx=8)
             elif not complete:
                 tk.Label(row, text="senza corpo", font=("Segoe UI", 8), bg=ROW, fg=MUTED).pack(side="right", padx=8)
             for widget in (row, dots, name):
                 widget.bind("<Button-1>", lambda e, c=code: self.select(c))
             self.rows[code] = (row, dots)
             self.draw_dots(code)
-        self.select(newest if newest in self.skins else next(iter(self.skins), None))
+        self.select(newest if newest in self.skins else next(iter(everything), None))
 
     def draw_dots(self, code):
         if code in self.rows:
@@ -260,8 +479,8 @@ class App:
 
     def prepare(self, code):
         """Senza toccare UEFN: converte la skin per avere foto e colori misurati."""
-        if not code or code in self.preparing or self.busy:
-            return
+        if not code or code in self.preparing or self.busy or code not in self.skins:
+            return                                 # le skin del catalogo hanno gia' foto e colori
         # modelli riletti adesso: l'elenco puo' essere stato fatto mentre FortnitePorting stava ancora esportando
         models, parts = sb.exported_skins().get(code) or self.skins[code], sb.part_textures(code)
         self.skins[code] = models
@@ -281,6 +500,25 @@ class App:
                 self.lines.put(("prepared", code))
         threading.Thread(target=work, daemon=True).start()
 
+    def search(self):
+        """Apre la griglia delle skin di Fortnite, gia' filtrata con quello che hai scritto."""
+        picker = getattr(self, "picker", None)
+        if picker and picker.win.winfo_exists():
+            picker.query.set(self.search_var.get())
+            picker.win.lift()
+            return
+        self.picker = SkinPicker(self, self.search_var.get())
+
+    def take_outfit(self, item):
+        sb.log(f"Prendo {item['name']} dal catalogo...")
+
+        def work():
+            try:
+                self.lines.put(("added", sb.add_catalog_skin(item)))
+            except sb.BotError as exc:
+                sb.log("ERRORE:", exc)
+        threading.Thread(target=work, daemon=True).start()
+
     def fetch_names(self):
         codes = [c for c in self.skins if c not in self.names]
         if not codes:
@@ -291,9 +529,13 @@ class App:
             self.lines.put(("names", None))
         threading.Thread(target=work, daemon=True).start()
 
+    def parts_of(self, code):
+        """Texture dell'export; le skin del catalogo non ne hanno (colori dalla foto ufficiale)."""
+        return sb.part_textures(code) if code in self.skins else {}
+
     def palette_of(self, code):
         if code not in self.palettes:
-            self.palettes[code] = sb.choose_palette(code, sb.part_textures(code), None)
+            self.palettes[code] = sb.choose_palette(code, self.parts_of(code), None)
         return self.palettes[code]
 
     def select(self, code):
@@ -320,7 +562,7 @@ class App:
         return min(range(len(names)), key=lambda i: used[names[i]][-1])
 
     def show_variant(self):
-        variants = sb.skin_variants(self.code) if self.code else {}
+        variants = sb.skin_variants(self.code) if self.code in self.skins else {}
         if len(variants) > 1:
             name = sb.default_variant(self.code, variants)
             nice = re.sub(r"^[MF]_(MED|LRG|SML)_", "", name).replace("_", " ")
@@ -346,7 +588,7 @@ class App:
         self.auto_colors()
 
     def show_dye(self):
-        if self.code and sb.can_dye(self.code):
+        if self.code in self.skins and sb.can_dye(self.code):
             dye = sb.skin_dye(self.code)
             if dye:
                 self.dye_btn.config(text="Colore della skin", bg=hexcol(dye), fg=readable_on(dye))
@@ -383,7 +625,7 @@ class App:
 
     def styles_of(self, code):
         if code not in self.style_cache:
-            self.style_cache[code] = sb.palette_styles(code, sb.part_textures(code))
+            self.style_cache[code] = sb.palette_styles(code, self.parts_of(code))
         return self.style_cache[code]
 
     def auto_colors(self):
@@ -504,8 +746,9 @@ class App:
         accent = hexcol(self.colors[0])
         self.auto_lbl.config(text=("●  Automatico: ON" if self.auto_on else "○  Automatico: OFF"),
                              fg=accent if self.auto_on else MUTED)
-        self.statues_lbl.config(text=("●  Statue: ON" if self.statues_on else "○  Statue: OFF"),
-                                fg=accent if self.statues_on else MUTED)
+        self.statues_lbl.config(text={"modello": "●  Statue: Modello", "giocatore": "●  Statue: Giocatore",
+                                      "off": "○  Statue: OFF"}[self.statue_mode],
+                                fg=MUTED if self.statue_mode == "off" else accent)
         self.falls_lbl.config(text=("●  Cascate XP: ON" if self.falls_on else "○  Cascate XP: OFF"),
                               fg=accent if self.falls_on else MUTED)
 
@@ -527,8 +770,18 @@ class App:
                else "Cascate XP: le tolgo al prossimo APPLICA A UEFN.")
 
     def toggle_statues(self):
-        self.statues_on = not self.statues_on
+        order = ["modello", "giocatore", "off"]
+        self.statue_mode = order[(order.index(self.statue_mode) + 1) % len(order)]
+        try:
+            (sb.HERE / "settings.json").write_text(json.dumps({**self.load_settings(), "statue": self.statue_mode}),
+                                                   encoding="utf-8")
+        except OSError:
+            pass
         self._toggles()
+        sb.log({"modello": "Statue: la skin convertita dall'export (anche skin che non hai).",
+                "giocatore": "Statue: Riferimento giocatore. In partita mostrano la skin che indossi, "
+                             "sempre perfetta e senza conversione. Si vedono solo in sessione, non nell'editor.",
+                "off": "Statue: non le tocco."}[self.statue_mode])
 
     def toggle_auto(self):
         self.auto_on = not self.auto_on
@@ -551,7 +804,8 @@ class App:
         self.apply_btn.config(text="STO LAVORANDO...", bg=ROW_SEL, fg=MUTED)
         style = "A mano" if self.style_idx < 0 else self.styles[self.style_idx][0]
         args = argparse.Namespace(colors=self.manual, layout=self.layout, style=style,
-                                  no_statues=not self.statues_on, cascate=self.falls_on, dry_run=False)
+                                  no_statues=self.statue_mode == "off", statue=self.statue_mode,
+                                  cascate=self.falls_on, dry_run=False)
 
         def work():
             try:
@@ -560,8 +814,11 @@ class App:
                 self.lines.put(None)               # segnale di fine
         threading.Thread(target=work, daemon=True).start()
 
-    def setup_map(self):
-        """Una volta sola per progetto: crea i materiali del bot e collega muri e cielo."""
+    def setup_map(self, player_refs=False):
+        """Una volta sola per progetto: crea i materiali del bot e collega muri e cielo.
+
+        Con player_refs mette anche le tre statue Riferimento giocatore (e le statue passano su "Giocatore").
+        """
         if self.busy:
             return
         self.busy = True
@@ -569,7 +826,8 @@ class App:
 
         def work():
             try:
-                sb.safe_setup()
+                if sb.safe_setup(player_refs=player_refs) and player_refs:
+                    self.statue_mode = "giocatore"
             finally:
                 self.lines.put(None)
         threading.Thread(target=work, daemon=True).start()
@@ -713,6 +971,20 @@ class App:
                     self.manual = None
                     self.code = None
                     self.refresh()
+                    continue
+                if isinstance(line, tuple) and line[0] == "added":
+                    code = line[1]
+                    self.palettes.pop(code, None)
+                    self.style_cache.pop(code, None)
+                    self.names = sb.load_names()
+                    self.refresh()
+                    self.select(code)
+                    self.list_canvas.update_idletasks()
+                    rows = list(self.rows)
+                    if code in rows:                # la riga nuova sta in fondo: la porto in vista
+                        self.list_canvas.yview_moveto(rows.index(code) / max(1, len(rows)))
+                    sb.log(f"{sb.display_name(code)}: colori presi dalla foto ufficiale. "
+                           "Premi APPLICA A UEFN (le statue saranno Riferimento giocatore).")
                     continue
                 if isinstance(line, tuple) and line[0] == "names":
                     self.names = sb.load_names()

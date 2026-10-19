@@ -1,7 +1,7 @@
 {
- "version": "1.0.35",
+ "version": "1.0.36",
  "date": "2026-10-19",
- "notes": "Skin con la faccia a flipbook (es. AcidWhale): occhi, bocca e sopracciglia disegnati sulla testa",
+ "notes": "Skin dal catalogo di Fortnite (griglia con le icone, niente export) e statue Riferimento giocatore: la skin vera di chi gioca, sempre perfetta. Nuovo tasto 'Prepara mappa + Riferimenti giocatore'. Avvio del bot molto piu' veloce.",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,24 +20,24 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "51139e2ebc66aef63c40c970d0fa5e77c255d521b7d9611228692071586209e7",
-   "size": 166
+   "sha256": "bfc956a1e68499c41a8e0127552d0e33d21116edf17e980631548335665135f2",
+   "size": 299
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "2cdf502feb87f52b05ec2d22c554a180a53cbab9f9cb4a53a331647a10515022",
-   "size": 78892
+   "sha256": "0407d3a37dd1dc80e0ffb9f58fdd203c93555f59c06df9e1e65abcad4756b0de",
+   "size": 96919
   },
   "skinbot_gui.py": {
-   "sha256": "710474e845d58d01fb9b51ba65b042d8ce024e12ffc9449bd43460694557aaad",
-   "size": 37608
+   "sha256": "04cb8d59a4f25f3a78b72c5bc779487c024fff4af9db8aa9f5963050d3f37233",
+   "size": 51454
   },
   "skinbot_setup.py": {
-   "sha256": "da00577116c93432837f356d931115b8825604f23213b9756febed08dd42bfc7",
-   "size": 14826
+   "sha256": "c21316e69d3e2181d0599c0026dba183cc90c4968706da3dbac20384802015f8",
+   "size": 15150
   },
   "skin_convert.py": {
    "sha256": "b1ca312b19290dd0c5468990dec09bf897133edc9374fd832ef871c319ab6967",
