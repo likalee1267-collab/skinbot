@@ -49,7 +49,7 @@ def configure(project):
 
 
 configure("redgotyfinal")
-CONVERTER_VERSION = 7            # da alzare quando skin_convert.py cambia la mesh prodotta
+CONVERTER_VERSION = 9            # da alzare quando skin_convert.py cambia la mesh prodotta
 STATUE_FOLDER = "WallBot/Skins"
 RAMP_CENTER_Y = -159744
 # (label, x, y, scala, yaw) - usati solo se le tre statue non esistono ancora
@@ -664,6 +664,9 @@ def part_textures(code, borrow=True):
                 kinds["color"] = dyed
             if dyed or dye_zone(kinds["color"]):
                 kinds.pop("emissive", None)        # in queste skin "_E" e' una maschera, non una luce
+    face = flipbook_face(code) if borrow else None
+    if face and "Head" in parts and face.is_file():
+        parts["Head"] = {**parts["Head"], "color": face}
     if borrow and parts:                           # lenti degli occhiali: scure, non con la texture del corpo
         for part in ("Glass", "Lens"):
             parts.setdefault(part, {"color": parts_glass or glass_texture()})
@@ -801,8 +804,48 @@ def glass_texture(name="T_WB_Glass.png", color=(14, 16, 24)):
     return png
 
 
+def flipbook_grid(img):
+    """Quante celle per lato ha un foglio di espressioni: la griglia le cui linee non tagliano nessun disegno."""
+    import numpy as np
+    alpha = np.asarray(img.getchannel("A").resize((512, 512)), dtype=np.float32) / 255
+    for n in (4, 3, 2):
+        lines = [alpha[:, round(512 * k / n) - 2: round(512 * k / n) + 2].mean() for k in range(1, n)]
+        lines += [alpha[round(512 * k / n) - 2: round(512 * k / n) + 2, :].mean() for k in range(1, n)]
+        if max(lines) < 0.01:
+            return n
+    return 1
+
+
+def flipbook_sheets(code):
+    """{"Brows"|"Eyes"|"Mouths": [file, celle per lato]} delle skin con la faccia a flipbook; vuoto se non lo e'."""
+    from PIL import Image
+    sheets = {}
+    for name, aliases in (("Brows", ("Brows",)), ("Eyes", ("Eyes",)), ("Mouths", ("Mouths", "Mouth"))):
+        for alias in aliases:
+            found = sorted(FP_ASSETS.rglob(f"T_{code}_Flipbook_{alias}.png"))
+            if found:
+                with Image.open(found[0]) as img:
+                    sheets[name] = [str(found[0]), flipbook_grid(img.convert("RGBA"))]
+                break
+    if not ("Eyes" in sheets or "Mouths" in sheets):
+        return {}
+    for name in ("Eye", "Iris", "Eyes_Iris"):     # l'iride che il gioco mette nella parte verde degli occhi
+        found = sorted(FP_ASSETS.rglob(f"T_{code}_{name}.png"))
+        if found:
+            sheets["Iris"] = [str(found[0]), 1]
+            break
+    return sheets
+
+
+def flipbook_face(code):
+    """Dove Blender disegna la faccia delle skin a flipbook (occhi, bocca e sopracciglia separati). None se non serve."""
+    return HERE / "skins" / code / f"T_{code}_Head_Face.png" if flipbook_sheets(code) else None
+
+
 def eye_texture(code):
     """Texture di pupilla/iride delle skin cel-shaded, se l'export ne ha una."""
+    if flipbook_sheets(code):                     # faccia a flipbook: e' gia' dentro la texture della testa
+        return None
     for owner in (code, base_code(code, raw_skins())):
         for name in EYE_TEXTURE_NAMES if owner else ():
             found = sorted(FP_ASSETS.rglob(f"T_{owner}_{name}.png"))
@@ -861,6 +904,9 @@ def convert(code, models, parts, eye=None):
         "textures": {part: str(kinds["color"]) for part, kinds in parts.items()},
         "eye": str(eye or eye_texture(code) or auto_eye_texture(code, parts)),
         "emissive": {part: str(kinds["emissive"]) for part, kinds in parts.items() if "emissive" in kinds},
+        "face_slot": "Head" if flipbook_face(code) else None,
+        "flipbook": flipbook_sheets(code),
+        "face_out": str(flipbook_face(code) or ""),
     }), encoding="utf-8")
     (folder / "surface_colors.json").unlink(missing_ok=True)
     cmd = [str(find_blender()), "-b", "-P", str(HERE / "skin_convert.py"), "--", str(cfg)]
@@ -1435,6 +1481,7 @@ def _run_skin(code, args):
     if generated:
         eye = auto_eye_texture(code, parts)
     info = convert(code, models, parts, eye)
+    parts = part_textures(code)                   # la conversione puo' aver creato texture nuove (faccia a flipbook)
     log(f"  Convertita: {info['tris']} triangoli, alta {info['size_m'][2]} m")
     # la pupilla va solo sulle sezioni occhi cel-shaded: slot "_Eyes" con un secondo canale UV
     eye_section = any((n or "").endswith("_Eyes") for n in info["slots"]) and len(info["uv_layers"]) > 1

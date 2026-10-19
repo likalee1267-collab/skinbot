@@ -214,6 +214,148 @@ def render_preview(mesh, textures, eye, path, glow=None):
     bpy.ops.render.render(write_still=True)
 
 
+def bake_flipbook_face(objects, sheets, out, part="Head", base=None):
+    """Disegna occhi, bocca e sopracciglia (prima espressione di ogni foglio) sulla testa, nello spazio UV1.
+
+    Il gioco li compone con un materiale che qui non c'e': li si proietta di fronte sulla testa,
+    in posizioni da viso (occhi a meta' altezza della faccia, bocca sotto, sopracciglia sopra).
+    """
+    if not base:
+        return False
+    head = next((o for o in objects for s in o.material_slots
+                 if s.material and s.material.name.endswith("_" + part)), None)
+    if head is None:
+        return False
+    me, mw = head.data, head.matrix_world
+    slot = next(i for i, s in enumerate(head.material_slots) if s.material and s.material.name.endswith("_" + part))
+    uv1 = me.uv_layers[0].data                     # la faccia si disegna nella texture della testa
+    tris, pts = [], []
+    me.calc_loop_triangles()
+    for tri in me.loop_triangles:
+        if tri.material_index != slot or (mw.to_3x3() @ tri.normal).y > -0.15:
+            continue                              # solo le facce rivolte in avanti (-Y)
+        co = [mw @ me.vertices[v].co for v in tri.vertices]
+        uv = [uv1[l].uv for l in tri.loops]
+        tris.append(([(u.x, u.y) for u in uv], [(c.x, c.z) for c in co]))
+        pts += [(c.x, c.z) for c in co]
+    if not tris:
+        return
+    xs = np.array([p[0] for p in pts])
+    zs = np.array([p[1] for p in pts])
+    width = np.percentile(xs, 97) - np.percentile(xs, 3)
+    bottom, top = np.percentile(zs, 2), np.percentile(zs, 98)
+    # monocolo/occhiali (slot Glass) = altezza degli occhi; senza, a 58% della faccia
+    glass = [mw2 @ o.data.vertices[v].co for o in objects for mw2 in [o.matrix_world]
+             for p in o.data.polygons if p.material_index < len(o.material_slots)
+             and o.material_slots[p.material_index].material
+             and "glass" in o.material_slots[p.material_index].material.name.lower() for v in p.vertices]
+    eye_z = float(np.mean([g.z for g in glass])) if glass else bottom + 0.58 * (top - bottom)
+    eye_dx = 0.24 * width
+    layout = {                                     # (centro x, centro z, larghezza della cella)
+        "Eyes": [(-eye_dx, eye_z, 0.62 * width), (eye_dx, eye_z, 0.62 * width)],
+        "Brows": [(-eye_dx, eye_z + 0.24 * width, 0.62 * width), (eye_dx, eye_z + 0.24 * width, 0.62 * width)],
+        "Mouths": [(0.0, eye_z - 0.42 * width, 0.95 * width)],
+    }
+    cells = {}
+    for name, (path, n) in sheets.items():
+        img = bpy.data.images.load(path, check_existing=True)
+        w, h = img.size
+        arr = np.empty(w * h * 4, dtype=np.float32)
+        img.pixels.foreach_get(arr)
+        arr = arr.reshape(h, w, 4)                 # riga 0 = in basso
+        cw, ch = w // n, h // n
+        grid = [arr[h - (r + 1) * ch:h - r * ch, k * cw:(k + 1) * cw] for r in range(n) for k in range(n)]
+        if name == "Brows":                        # sopracciglia: la prima espressione (neutra)
+            cells[name] = grid[0]
+        else:                                      # occhi e bocca: i piu' grandi, l'espressione "da statua"
+            cells[name] = max(grid, key=lambda g: float(g[..., 3].sum()))
+    iris = sheets.get("Iris")
+    if iris and "Eyes" in cells:                   # il verde degli occhi e' il posto dell'iride: ci va la texture vera
+        img = bpy.data.images.load(iris[0], check_existing=True)
+        w, h = img.size
+        tex = np.empty(w * h * 4, dtype=np.float32)
+        img.pixels.foreach_get(tex)
+        tex = tex.reshape(h, w, 4)
+        cell = cells["Eyes"].copy()
+        green = (cell[..., 1] > 0.5) & (cell[..., 0] < 0.4) & (cell[..., 2] < 0.4) & (cell[..., 3] > 0.5)
+        if green.any():
+            ys, xs_ = np.nonzero(green)
+            y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs_.min(), xs_.max() + 1
+            gy = ((np.arange(y0, y1) - y0) / max(y1 - y0, 1) * h).astype(int).clip(0, h - 1)
+            gx = ((np.arange(x0, x1) - x0) / max(x1 - x0, 1) * w).astype(int).clip(0, w - 1)
+            patch = tex[np.ix_(gy, gx)]
+            sub = cell[y0:y1, x0:x1]
+            mask = green[y0:y1, x0:x1]
+            sub[mask, :3] = patch[mask, :3]
+            cells["Eyes"] = cell
+
+    def decal(x, z):
+        """Colore RGBA della faccia nel punto (x, z) di fronte alla testa."""
+        rgba = np.zeros(x.shape + (4,), dtype=np.float32)
+        for name in ("Mouths", "Eyes", "Brows"):
+            if name not in cells:
+                continue
+            cell = cells[name]
+            ch, cw = cell.shape[:2]
+            for i, (cx, cz, cwid) in enumerate(layout[name]):
+                u = (x - cx) / cwid + 0.5
+                if name != "Mouths" and cx > 0:    # il secondo occhio e' lo specchio del primo
+                    u = 1 - u
+                v = (z - cz) / cwid + 0.5
+                inside = (u >= 0) & (u < 1) & (v >= 0) & (v < 1)
+                if not inside.any():
+                    continue
+                px = np.clip((u * cw).astype(int), 0, cw - 1)
+                py = np.clip((v * ch).astype(int), 0, ch - 1)
+                src = cell[py, px]
+                a = np.where(inside, src[..., 3], 0)[..., None]
+                rgba[..., :3] = rgba[..., :3] * (1 - a) + src[..., :3] * a
+                rgba[..., 3:] = np.maximum(rgba[..., 3:], a)
+        return rgba
+
+    src = bpy.data.images.load(base, check_existing=False)
+    sw, sh = src.size
+    canvas = np.empty(sw * sh * 4, dtype=np.float32)
+    src.pixels.foreach_get(canvas)
+    canvas = canvas.reshape(sh, sw, 4)             # la texture della testa, riga 0 = v 0
+    paint = np.zeros_like(canvas)
+    for uv, xz in tris:
+        uv = np.array(uv) * (sw, sh)
+        xz = np.array(xz)
+        x0, y0 = np.floor(uv.min(0)).astype(int)
+        x1, y1 = np.ceil(uv.max(0)).astype(int)
+        x0, y0, x1, y1 = max(x0, 0), max(y0, 0), min(x1, sw - 1), min(y1, sh - 1)
+        if x1 < x0 or y1 < y0:
+            continue
+        gx, gy = np.meshgrid(np.arange(x0, x1 + 1) + 0.5, np.arange(y0, y1 + 1) + 0.5)
+        (ax, ay), (bx, by), (cx_, cy_) = uv
+        det = (by - cy_) * (ax - cx_) + (cx_ - bx) * (ay - cy_)
+        if abs(det) < 1e-9:
+            continue
+        l1 = ((by - cy_) * (gx - cx_) + (cx_ - bx) * (gy - cy_)) / det
+        l2 = ((cy_ - ay) * (gx - cx_) + (ax - cx_) * (gy - cy_)) / det
+        l3 = 1 - l1 - l2
+        inside = (l1 >= -0.01) & (l2 >= -0.01) & (l3 >= -0.01)
+        if not inside.any():
+            continue
+        px = l1 * xz[0, 0] + l2 * xz[1, 0] + l3 * xz[2, 0]
+        pz = l1 * xz[0, 1] + l2 * xz[1, 1] + l3 * xz[2, 1]
+        col = decal(px, pz)
+        region = paint[y0:y1 + 1, x0:x1 + 1]
+        region[inside] = np.where(col[inside][:, 3:] > region[inside][:, 3:], col[inside], region[inside])
+    a = paint[..., 3:]
+    canvas[..., :3] = canvas[..., :3] * (1 - a) + paint[..., :3] * a
+    canvas[..., 3] = 1.0
+    out.parent.mkdir(parents=True, exist_ok=True)
+    img = bpy.data.images.new("FlipbookFace", sw, sh, alpha=True)
+    img.pixels.foreach_set(canvas.ravel())
+    img.filepath_raw = str(out)
+    img.file_format = "PNG"
+    img.save()
+    print("FACCIA flipbook:", out, "occhi a z", round(eye_z, 3), "larghezza", round(float(width), 3))
+    return True
+
+
 def main():
     cfg = json.loads(Path(sys.argv[sys.argv.index("--") + 1]).read_text(encoding="utf-8"))
     out = Path(cfg["out"])
@@ -229,8 +371,14 @@ def main():
         sys.exit("Nessuna mesh importata")
     for o in sources_mesh:
         split_eye_slots(o)
-
     out.parent.mkdir(parents=True, exist_ok=True)
+    if cfg.get("flipbook") and cfg.get("face_out"):
+        try:
+            if bake_flipbook_face(sources_mesh, cfg["flipbook"], Path(cfg["face_out"]),
+                                  cfg.get("face_slot") or "Head", textures.get(cfg.get("face_slot") or "Head")):
+                textures[cfg.get("face_slot") or "Head"] = cfg["face_out"]
+        except Exception as exc:                   # senza faccia la skin si converte lo stesso
+            print("WARN faccia flipbook:", exc)
     colors = []
     try:
         colors = surface_colors(sources_mesh, textures)

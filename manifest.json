@@ -1,7 +1,7 @@
 {
- "version": "1.0.34",
- "date": "2026-10-18",
- "notes": "Accende da solo Python nel progetto UEFN quando mancano gli strumenti dell'editor (errore SceneTools not found)",
+ "version": "1.0.35",
+ "date": "2026-10-19",
+ "notes": "Skin con la faccia a flipbook (es. AcidWhale): occhi, bocca e sopracciglia disegnati sulla testa",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,16 +20,16 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "b6ee9f157b12ad8314b4cb22fa1b04674b0c7a5c83cf6045f317ed44bf181bde",
-   "size": 181
+   "sha256": "51139e2ebc66aef63c40c970d0fa5e77c255d521b7d9611228692071586209e7",
+   "size": 166
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "c0d98951d4981ef0c594fbd0509919c4f8e8787024d8d9d680ffd069d5f0b744",
-   "size": 76564
+   "sha256": "2cdf502feb87f52b05ec2d22c554a180a53cbab9f9cb4a53a331647a10515022",
+   "size": 78892
   },
   "skinbot_gui.py": {
    "sha256": "710474e845d58d01fb9b51ba65b042d8ce024e12ffc9449bd43460694557aaad",
@@ -40,8 +40,8 @@
    "size": 14826
   },
   "skin_convert.py": {
-   "sha256": "ba22c49c321e5a333d8946fbfd91c2b89c189b3edc67f917e057c07f81e18adb",
-   "size": 14301
+   "sha256": "b1ca312b19290dd0c5468990dec09bf897133edc9374fd832ef871c319ab6967",
+   "size": 22197
   },
   "wallbot.py": {
    "sha256": "9177a2413edceecc08617fadb8658f2b2bf1df18b5be15d0a9ec83443f940df9",

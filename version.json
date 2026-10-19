@@ -1,5 +1,5 @@
 {
-  "version": "1.0.34",
-  "date": "2026-10-18",
-  "notes": "Accende da solo Python nel progetto UEFN quando mancano gli strumenti dell'editor (errore SceneTools not found)"
+  "version": "1.0.35",
+  "date": "2026-10-19",
+  "notes": "Skin con la faccia a flipbook (es. AcidWhale): occhi, bocca e sopracciglia disegnati sulla testa"
 }
