@@ -1,5 +1,5 @@
 {
-  "version": "1.0.36",
+  "version": "1.0.37",
   "date": "2026-10-19",
-  "notes": "Skin dal catalogo di Fortnite (griglia con le icone, niente export) e statue Riferimento giocatore: la skin vera di chi gioca, sempre perfetta. Nuovo tasto 'Prepara mappa + Riferimenti giocatore'. Avvio del bot molto piu' veloce."
+  "notes": "Statue Riferimento giocatore: corretto, non spariscono piu'."
 }

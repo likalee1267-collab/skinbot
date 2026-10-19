@@ -1,7 +1,7 @@
 {
- "version": "1.0.36",
+ "version": "1.0.37",
  "date": "2026-10-19",
- "notes": "Skin dal catalogo di Fortnite (griglia con le icone, niente export) e statue Riferimento giocatore: la skin vera di chi gioca, sempre perfetta. Nuovo tasto 'Prepara mappa + Riferimenti giocatore'. Avvio del bot molto piu' veloce.",
+ "notes": "Statue Riferimento giocatore: corretto, non spariscono piu'.",
  "files": {
   "applica_skin.bat": {
    "sha256": "a2f693764506dac58179976c0c50ae981e2cf48c2fe876fd831decf884828e77",
@@ -20,16 +20,16 @@
    "size": 147
   },
   "version.json": {
-   "sha256": "bfc956a1e68499c41a8e0127552d0e33d21116edf17e980631548335665135f2",
-   "size": 299
+   "sha256": "78255f5961f43af9c731e7fd94b6b49723b22c529b8f77eadf1220ec8638b4e5",
+   "size": 130
   },
   "updater.py": {
    "sha256": "a34686ebdae3bdd799d4ccfecdd85687945723bec00de5c8db518884595fcaf6",
    "size": 11593
   },
   "skinbot.py": {
-   "sha256": "0407d3a37dd1dc80e0ffb9f58fdd203c93555f59c06df9e1e65abcad4756b0de",
-   "size": 96919
+   "sha256": "74171836dc7ad9ee127475f015b3c8ff208e7504571d4793bc26a818c6b81472",
+   "size": 96819
   },
   "skinbot_gui.py": {
    "sha256": "04cb8d59a4f25f3a78b72c5bc779487c024fff4af9db8aa9f5963050d3f37233",

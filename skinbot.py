@@ -1533,10 +1533,9 @@ def place_player_refs(ue, pose=None):
             made += 1
         ref_actor = {"refPath": actor}
         calls = [(T_ACTOR, "set_actor_transform", {"actor": ref_actor, "xform": xform}),   # PlaceDevice ignora lo yaw
-                 (T_OBJ, "set_properties", {"instance": ref_actor, "values": json.dumps(settings)}),
-                 # il cono di luce sotto i piedi: con la statua gigante sembra un faro
-                 (T_OBJ, "set_properties", {"instance": {"refPath": actor + ".Hologram_Cone"},
-                                            "values": json.dumps({"bVisible": False, "bHiddenInGame": True})})]
+                 (T_OBJ, "set_properties", {"instance": ref_actor, "values": json.dumps(settings)})]
+        # NON toccare il componente Hologram_Cone: il personaggio ci sta attaccato, spegnerlo fa sparire la statua.
+        # La luce sotto i piedi la toglie gia' "hologram Effect Strength" a 0.
         if label not in have:
             calls += [(T_ACTOR, "set_label", {"actor": ref_actor, "label": label}),
                       (T_SCENE, "set_actor_folder", {"actor": ref_actor, "folder_path": REF_FOLDER})]
